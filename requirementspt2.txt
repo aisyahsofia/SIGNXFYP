@@ -1,6 +1,6 @@
-streamlit==1.12.0
+streamlit==1.25.0
 opencv-python==4.10.0.84
 numpy==1.26.4
 Flask==2.0.1
 requests==2.25.0
-altair==4.2.0
+altair==4.2.2
