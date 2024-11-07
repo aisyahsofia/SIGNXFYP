@@ -9,7 +9,6 @@ import os
 
 print(cv2.__version__)
 
-
 # File paths
 USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
@@ -22,6 +21,11 @@ VIDEO_BASE_PATH = "C:/Users/puter/Videos/"  # Update this with your correct path
 if not os.path.exists(VIDEO_BASE_PATH):
     st.error(f"The video base path does not exist: {VIDEO_BASE_PATH}")
     raise FileNotFoundError(f"Video base path not found: {VIDEO_BASE_PATH}")
+
+# Ensure that video files exist in the base path
+missing_files = [file for file in SIGN_LANGUAGE_DATA.values() if not os.path.exists(file)]
+if missing_files:
+    st.error(f"These video files are missing: {', '.join(missing_files)}")
 
 # Sign language data for training
 SIGN_LANGUAGE_DATA = {
@@ -173,98 +177,34 @@ def asl_alphabet_training():
         if st.button(f"Mark {letter} as learned"):
             track_progress(st.session_state['username'], letter)
 
-# Performance tracking
+# Tracking user progress
 def track_progress(username, phrase):
     progress_data = load_progress_data()
-    new_entry = pd.DataFrame([[username, phrase]], columns=["username", "phrase"])
-    progress_data = pd.concat([progress_data, new_entry], ignore_index=True)
+    if username not in progress_data['username'].values:
+        progress_data = progress_data.append({"username": username, "phrase": phrase}, ignore_index=True)
+    else:
+        progress_data.loc[progress_data['username'] == username, 'phrase'] = phrase
     save_progress_data(progress_data)
-    st.success(f"{phrase} marked as learned!")
 
-# Display user progress
-def show_progress(username):
-    st.subheader("Your Learning Progress")
-    progress_data = load_progress_data()
-    user_progress = progress_data[progress_data['username'] == username]
-    if user_progress.empty:
-        st.write("No progress yet.")
+# Main page of the app
+def main():
+    if 'logged_in' in st.session_state and st.session_state['logged_in']:
+        st.sidebar.subheader("Welcome to SignX!")
+        page = st.sidebar.selectbox("Choose a page", ["Training", "ASL Alphabet", "Logout"])
+        if page == "Training":
+            training()
+        elif page == "ASL Alphabet":
+            asl_alphabet_training()
+        elif page == "Logout":
+            st.session_state['logged_in'] = False
+            st.sidebar.write("You have logged out.")
+            st.experimental_rerun()
     else:
-        st.table(user_progress)
+        page = st.sidebar.selectbox("Choose a page", ["Login", "Sign Up"])
+        if page == "Login":
+            login()
+        elif page == "Sign Up":
+            sign_up()
 
-# Camera feature for sign detection
-def sign_detection():
-    st.subheader("Sign Detection Camera")
-    st.write("Point your camera to detect ASL signs.")
-    
-    camera_input = st.camera_input("Capture Image of your Sign")
-
-    if camera_input is not None:
-        image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
-        
-        # Placeholder for model predictions
-        st.write("This feature requires a model for sign detection.")
-    else:
-        st.error("No image captured yet.")
-
-# Quiz feature
-def quiz():
-    st.subheader("Sign Language Quiz")
-    
-    if 'current_question' not in st.session_state:
-        st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-
-    question = st.session_state['current_question']
-    
-    st.write(f"What does this sign mean?")
-    st.video(SIGN_LANGUAGE_DATA[question])
-
-    answer = st.text_input("Your answer")
-
-    if st.button("Submit"):
-        if answer.strip().lower() == question.lower():
-            st.success("Correct!")
-            track_progress(st.session_state['username'], question)
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-        else:
-            st.error(f"Incorrect! The correct answer was '{question}'.")
-
-# Feedback system
-def feedback():
-    st.subheader("Feedback")
-    feedback_text = st.text_area("Please provide your feedback or suggestions:")
-    if st.button("Submit Feedback"):
-        if feedback_text:
-            st.success("Thank you for your feedback!")
-
-# Main app flow
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-
-if not st.session_state['logged_in']:
-    st.sidebar.title("SignX: Next-Gen Technology for Deaf Communications")
-    login_option = st.sidebar.selectbox("Login or Sign Up", ["Login", "Sign Up"])
-
-    if login_option == "Login":
-        login()
-    else:
-        sign_up()
-else:
-    st.sidebar.title(f"Welcome, {st.session_state['username']}")
-    action = st.sidebar.selectbox("Action", ["Training", "ASL Alphabet", "Your Progress", "Quiz", "Sign Detection", "Feedback", "Logout"])
-
-    if action == "Training":
-        training()
-    elif action == "ASL Alphabet":
-        asl_alphabet_training()
-    elif action == "Your Progress":
-        show_progress(st.session_state['username'])
-    elif action == "Quiz":
-        quiz()
-    elif action == "Sign Detection":
-        sign_detection()
-    elif action == "Feedback":
-        feedback()
-    elif action == "Logout":
-        st.session_state['logged_in'] = False
-        del st.session_state['username']
-        st.write("You have been logged out.")
+if __name__ == "__main__":
+    main()
