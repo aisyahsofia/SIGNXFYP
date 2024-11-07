@@ -6,7 +6,6 @@ import cv2
 import numpy as np
 import os
 
-
 # File paths
 USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
@@ -184,49 +183,35 @@ def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
     
-    # Initialize webcam
-    cap = cv2.VideoCapture(0)
+    camera_input = st.camera_input("Capture Image of your Sign")
 
-    if not cap.isOpened():
-        st.error("Could not open webcam.")
-        return
-
-    # Create a placeholder for the video feed
-    video_placeholder = st.empty()
-
-    # Display video feed
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            st.error("Failed to capture video")
-            break
+    if camera_input is not None:
+        image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
         
-        # Convert the frame to RGB format for Streamlit
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        
-        # Display the resulting frame
-        video_placeholder.image(frame_rgb, channels="RGB", use_column_width=True)
-
-        # Add a stop button
-        if st.button("Stop"):
-            break
-
-    cap.release()
-    cv2.destroyAllWindows()
+        # Placeholder for model predictions
+        st.write("This feature requires a model for sign detection.")
+    else:
+        st.error("No image captured yet.")
 
 # Quiz feature
 def quiz():
     st.subheader("Sign Language Quiz")
-    question = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+    
+    if 'current_question' not in st.session_state:
+        st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+
+    question = st.session_state['current_question']
+    
     st.write(f"What does this sign mean?")
     st.video(SIGN_LANGUAGE_DATA[question])
 
     answer = st.text_input("Your answer")
-    
+
     if st.button("Submit"):
         if answer.strip().lower() == question.lower():
             st.success("Correct!")
             track_progress(st.session_state['username'], question)
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
         else:
             st.error(f"Incorrect! The correct answer was '{question}'.")
 
@@ -237,7 +222,6 @@ def feedback():
     if st.button("Submit Feedback"):
         if feedback_text:
             st.success("Thank you for your feedback!")
-            # Here you can implement saving feedback to a file or database if needed
 
 # Main app flow
 if 'logged_in' not in st.session_state:
@@ -269,5 +253,5 @@ else:
         feedback()
     elif action == "Logout":
         st.session_state['logged_in'] = False
-        st.session_state.pop('username', None)
-        st.success("You have been logged out.")
+        del st.session_state['username']
+        st.write("You have been logged out.")
