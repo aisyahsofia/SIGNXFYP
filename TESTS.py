@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import hashlib
-import random
 import cv2
 import numpy as np
 import os
@@ -45,7 +44,7 @@ SIGN_LANGUAGE_DATA = {
     "Goodbye": f"{BASE_URL}GOODBYE%20ASL.mp4",
 }
 
-# Basic ASL alphabet
+# Basic ASL alphabet (excluding J and Z as per your images)
 ASL_ALPHABET = {
     'A': f"{BASE_URL}A%20ASL.mp4",
     'B': f"{BASE_URL}B%20ASL.mp4",
@@ -56,7 +55,6 @@ ASL_ALPHABET = {
     'G': f"{BASE_URL}G%20ASL.mp4",
     'H': f"{BASE_URL}H%20ASL.mp4",
     'I': f"{BASE_URL}I%20ASL.mp4",
-    'J': f"{BASE_URL}J%20ASL.mp4",
     'K': f"{BASE_URL}K%20ASL.mp4",
     'L': f"{BASE_URL}L%20ASL.mp4",
     'M': f"{BASE_URL}M%20ASL.mp4",
@@ -71,8 +69,7 @@ ASL_ALPHABET = {
     'V': f"{BASE_URL}V%20ASL.mp4",
     'W': f"{BASE_URL}W%20ASL.mp4",
     'X': f"{BASE_URL}X%20ASL.mp4",
-    'Y': f"{BASE_URL}Y%20ASL.mp4",
-    'Z': f"{BASE_URL}Z%20ASL.mp4"
+    'Y': f"{BASE_URL}Y%20ASL.mp4"
 }
 
 # Hashing function for passwords
@@ -146,7 +143,7 @@ def sign_detection():
         predicted_class = np.argmax(prediction, axis=1)
 
         # Mapping predicted class to ASL sign
-        detected_sign = list(SIGN_LANGUAGE_DATA.keys())[predicted_class[0]]
+        detected_sign = list(ASL_ALPHABET.keys())[predicted_class[0]]
         
         st.image(image, caption="Captured Sign", use_column_width=True)
         st.write(f"Detected sign: {detected_sign}")
