@@ -1,4 +1,4 @@
-opencv-python==4.10.0
+opencv-python-headless==4.5.5.64
 streamlit==<TESTS.py>
 opencv-contrib-python
 numpy
