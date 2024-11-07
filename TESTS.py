@@ -6,6 +6,8 @@ import cv2
 import numpy as np
 import os
 
+print(cv2.__version__)
+
 # File paths
 USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
