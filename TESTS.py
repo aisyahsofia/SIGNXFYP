@@ -187,7 +187,5 @@ else:
     elif action == "Feedback":
         feedback()
     elif action == "Logout":
-        st.session_state['logged_in'] = False
-        st.session_state['username'] = ""
-        st.sidebar.write("You have logged out.")
-
+        logout()
+        st.experimental_rerun()
