@@ -15,59 +15,95 @@ USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
 SIGN_DATA_FILE = "sign_language_data.csv"
 
-# Sign language data for training
+import streamlit as st
+import os
+
+# Sign language data for training (using raw strings for file paths)
 SIGN_LANGUAGE_DATA = {
-    "Hello": "HELLO ASL.mp4",
-    "Good Morning": "GOODMORNING ASL.mp4",
-    "Good Afternoon": "GOODAFTERNOON ASL.mp4",
-    "Good Evening": "GOODEVENING ASL.mp4",
-    "Good Night": "GOODNIGHT ASL.mp4",
-    "Thank You": "THANKYOU.mp4",
-    "Sorry": "SORRY ASL.mp4",
-    "Please": "PLEASE ASL.mp4",
-    "Yes": "YES ASL.mp4",
-    "No": "NO ASL.mp4",
-    "How Are You?": "HOWAREYOU ASL.mp4",
-    "My Name Is...": "MYNAMEIS ASL.mp4",
-    "What Is Your Name?": "WHATISYOURNAME ASL.mp4",
-    "I Am Deaf": "IMDEAF ASL.mp4",
-    "I Am Hearing": "IMHEARING ASL.mp4",
-    "Where Is the Toilet?": "WHEREISTHETOILET ASL.mp4",
-    "Help me": "HELPME ASL.mp4",
-    "I Love You": "ILOVEYOU ASL.mp4",
-    "See You Later": "SEEYOULATER ASL.mp4",
-    "Goodbye": "GOODBYE ASL.mp4",
+    "Hello": r"C:\Users\puter\Downloads\HELLO ASL.mp4",
+    "Good Morning": r"C:\Users\puter\Downloads\GOODMORNING ASL.mp4",
+    "Good Afternoon": r"C:\Users\puter\Downloads\GOODAFTERNOON ASL.mp4",
+    "Good Evening": r"C:\Users\puter\Downloads\GOODEVENING ASL.mp4",
+    "Good Night": r"C:\Users\puter\Downloads\GOODNIGHT ASL.mp4",
+    "Thank You": r"C:\Users\puter\Downloads\THANKYOU ASL.mp4",
+    "Sorry": r"C:\Users\puter\Downloads\SORRY ASL.mp4",
+    "Please": r"C:\Users\puter\Downloads\PLEASE ASL.mp4",
+    "Yes": r"C:\Users\puter\Downloads\YES ASL.mp4",
+    "No": r"C:\Users\puter\Downloads\NO ASL.mp4",
+    "How Are You?": r"C:\Users\puter\Downloads\HOWAREYOU ASL.mp4",
+    "My Name Is...": r"C:\Users\puter\Downloads\MYNAMEIS ASL.mp4",
+    "What Is Your Name?": r"C:\Users\puter\Downloads\WHATISYOURNAME ASL.mp4",
+    "I Am Deaf": r"C:\Users\puter\Downloads\IMDEAF ASL.mp4",
+    "I Am Hearing": r"C:\Users\puter\Downloads\IMHEARING ASL.mp4",
+    "Where Is the Toilet?": r"C:\Users\puter\Downloads\WHEREISTHETOILET ASL.mp4",
+    "Help me": r"C:\Users\puter\Downloads\HELPME ASL.mp4",
+    "I Love You": r"C:\Users\puter\Downloads\ILOVEYOU ASL.mp4",
+    "See You Later": r"C:\Users\puter\Downloads\SEEYOULATER ASL.mp4",
+    "Goodbye": r"C:\Users\puter\Downloads\GOODBYE ASL.mp4",
 }
 
 # Basic ASL alphabet
 ASL_ALPHABET = {
-    'A': 'A ASL.mp4',
-    'B': 'B ASL.mp4',
-    'C': 'C ASL.mp4',
-    'D': 'D ASL.mp4',
-    'E': 'E ASL.mp4',
-    'F': 'F ASL.mp4',
-    'G': 'G ASL.mp4',
-    'H': 'H ASL.mp4',
-    'I': 'I ASL.mp4',
-    'J': 'J ASL.mp4',
-    'K': 'K ASL.mp4',
-    'L': 'L ASL.mp4',
-    'M': 'M ASL.mp4',
-    'N': 'N ASL.mp4',
-    'O': 'O ASL.mp4',
-    'P': 'P ASL.mp4',
-    'Q': 'Q ASL.mp4',
-    'R': 'R ASL.mp4',
-    'S': 'S ASL.mp4',
-    'T': 'T ASL.mp4',
-    'U': 'U ASL.mp4',
-    'V': 'V ASL.mp4',
-    'W': 'W ASL.mp4',
-    'X': 'X ASL.mp4',
-    'Y': 'Y ASL.mp4',
-    'Z': 'Z ASL.mp4'
+    'A': r"C:\Users\puter\Downloads\A ASL.mp4",
+    'B': r"C:\Users\puter\Downloads\B ASL.mp4",
+    'C': r"C:\Users\puter\Downloads\C ASL.mp4",
+    'D': r"C:\Users\puter\Downloads\D ASL.mp4",
+    'E': r"C:\Users\puter\Downloads\E ASL.mp4",
+    'F': r"C:\Users\puter\Downloads\F ASL.mp4",
+    'G': r"C:\Users\puter\Downloads\G ASL.mp4",
+    'H': r"C:\Users\puter\Downloads\H ASL.mp4",
+    'I': r"C:\Users\puter\Downloads\I ASL.mp4",
+    'J': r"C:\Users\puter\Downloads\J ASL.mp4",
+    'K': r"C:\Users\puter\Downloads\K ASL.mp4",
+    'L': r"C:\Users\puter\Downloads\L ASL.mp4",
+    'M': r"C:\Users\puter\Downloads\M ASL.mp4",
+    'N': r"C:\Users\puter\Downloads\N ASL.mp4",
+    'O': r"C:\Users\puter\Downloads\O ASL.mp4",
+    'P': r"C:\Users\puter\Downloads\P ASL.mp4",
+    'Q': r"C:\Users\puter\Downloads\Q ASL.mp4",
+    'R': r"C:\Users\puter\Downloads\R ASL.mp4",
+    'S': r"C:\Users\puter\Downloads\S ASL.mp4",
+    'T': r"C:\Users\puter\Downloads\T ASL.mp4",
+    'U': r"C:\Users\puter\Downloads\U ASL.mp4",
+    'V': r"C:\Users\puter\Downloads\V ASL.mp4",
+    'W': r"C:\Users\puter\Downloads\W ASL.mp4",
+    'X': r"C:\Users\puter\Downloads\X ASL.mp4",
+    'Y': r"C:\Users\puter\Downloads\Y ASL.mp4",
+    'Z': r"C:\Users\puter\Downloads\Z ASL.mp4"
 }
+
+# Function to check if video files exist
+def check_video_files():
+    missing_files = []
+    for video_name, video_path in {**SIGN_LANGUAGE_DATA, **ASL_ALPHABET}.items():
+        if not os.path.exists(video_path):
+            missing_files.append(video_name)
+    return missing_files
+
+# Streamlit app
+def run_app():
+    # Title of the app
+    st.title("American Sign Language (ASL) Training App")
+
+    # Check if all video files exist
+    missing_files = check_video_files()
+    if missing_files:
+        st.error(f"These videos are missing: {', '.join(missing_files)}")
+    else:
+        st.success("All videos are available.")
+
+    # Show available sign language options
+    option = st.selectbox("Choose a sign language to learn:", list(SIGN_LANGUAGE_DATA.keys()) + list(ASL_ALPHABET.keys()))
+
+    # Display the corresponding video for the selected option
+    if option:
+        video_path = SIGN_LANGUAGE_DATA.get(option) or ASL_ALPHABET.get(option)
+        if video_path:
+            st.video(video_path)
+
+if __name__ == "__main__":
+    run_app()
+
 
 # Hashing function for passwords
 def hash_password(password):
