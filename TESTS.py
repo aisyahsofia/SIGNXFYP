@@ -13,8 +13,8 @@ USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
 SIGN_DATA_FILE = "sign_language_data.csv"
 
-# Raw GitHub URLs for the video files
-BASE_URL = "https://raw.githubusercontent.com/yourusername/yourrepository/main/ASL%20VIDEOS/"
+# Base URL for GitHub raw files
+BASE_URL = "https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/"
 
 # Sign language data for training
 SIGN_LANGUAGE_DATA = {
@@ -23,7 +23,7 @@ SIGN_LANGUAGE_DATA = {
     "Good Afternoon": f"{BASE_URL}GOODAFTERNOON%20ASL.mp4",
     "Good Evening": f"{BASE_URL}GOODEVENING%20ASL.mp4",
     "Good Night": f"{BASE_URL}GOODNIGHT%20ASL.mp4",
-    "Thank You": f"{BASE_URL}THANKYOU.mp4",
+    "Thank You": f"{BASE_URL}THANKYOU%20ASL.mp4",
     "Sorry": f"{BASE_URL}SORRY%20ASL.mp4",
     "Please": f"{BASE_URL}PLEASE%20ASL.mp4",
     "Yes": f"{BASE_URL}YES%20ASL.mp4",
@@ -206,43 +206,47 @@ def quiz():
         st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
 
     question = st.session_state['current_question']
-    st.write(f"What is the ASL sign for: {question}")
     
-    answer = st.text_input("Your answer (type it in text):")
+    st.write(f"What does this sign mean?")
+    st.video(SIGN_LANGUAGE_DATA[question])
+
+    answer = st.text_input("Your answer")
+    
     if st.button("Submit Answer"):
         if answer.lower() == question.lower():
             st.success("Correct!")
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
         else:
-            st.error("Incorrect. Try again.")
+            st.error("Incorrect, try again.")
+        st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
 
-# Main app logic
+# Main app
 def main():
-    st.set_page_config(page_title="SignX: Learn ASL", layout="wide")
-    
-    if "logged_in" in st.session_state and st.session_state["logged_in"]:
-        st.sidebar.success(f"Logged in as {st.session_state['username']}")
+    if 'logged_in' not in st.session_state or not st.session_state['logged_in']:
+        st.sidebar.title("SignX: Login/Sign Up")
+        option = st.sidebar.radio("Select an Option", ("Login", "Sign Up"))
         
-        app_mode = st.sidebar.selectbox("Choose Mode", ("Training", "ASL Alphabet", "Progress", "Quiz", "Sign Detection"))
-        
-        if app_mode == "Training":
-            training()
-        elif app_mode == "ASL Alphabet":
-            asl_alphabet_training()
-        elif app_mode == "Progress":
-            show_progress(st.session_state['username'])
-        elif app_mode == "Quiz":
-            quiz()
-        elif app_mode == "Sign Detection":
-            sign_detection()
-
-    else:
-        st.sidebar.selectbox("Login or Sign Up", ("Login", "Sign Up"))
-        mode = st.sidebar.radio("Choose Action", ["Login", "Sign Up"])
-        if mode == "Login":
+        if option == "Login":
             login()
-        elif mode == "Sign Up":
+        else:
             sign_up()
+    else:
+        username = st.session_state['username']
+        
+        st.sidebar.title(f"Welcome {username}")
+        page = st.sidebar.radio("Choose a page", ("Home", "Training", "ASL Alphabet", "Progress", "Sign Detection", "Quiz"))
+        
+        if page == "Home":
+            st.write("Welcome to SignX! Let's start learning sign language.")
+        elif page == "Training":
+            training()
+        elif page == "ASL Alphabet":
+            asl_alphabet_training()
+        elif page == "Progress":
+            show_progress(username)
+        elif page == "Sign Detection":
+            sign_detection()
+        elif page == "Quiz":
+            quiz()
 
 if __name__ == "__main__":
     main()
