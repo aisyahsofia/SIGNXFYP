@@ -185,14 +185,15 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
-# Camera feature for sign detection
+# Camera feature for sign detection (works on mobile)
 def sign_detection():
     st.subheader("Sign Detection Camera")
-    st.write("Point your camera to detect ASL signs.")
+    st.write("Point your phone camera to detect ASL signs.")
     
     camera_input = st.camera_input("Capture Image of your Sign")
 
     if camera_input is not None:
+        # Process the image for sign detection
         image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
         
         # Placeholder for model predictions
