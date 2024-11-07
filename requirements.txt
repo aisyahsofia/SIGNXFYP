@@ -3,3 +3,5 @@ opencv-contrib-python
 numpy
 streamlit
 pandas
+libgl1
+libglu1-mesa
