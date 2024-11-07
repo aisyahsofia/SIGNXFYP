@@ -6,14 +6,17 @@ import cv2
 import numpy as np
 import os
 
-
 print(cv2.__version__)
-
 
 # File paths
 USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
 SIGN_DATA_FILE = "sign_language_data.csv"
+IMAGES_DIR = "learned_images"  # Directory to save captured images
+
+# Ensure images directory exists
+if not os.path.exists(IMAGES_DIR):
+    os.makedirs(IMAGES_DIR)
 
 # Base URL for GitHub raw files
 BASE_URL = "https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/"
@@ -96,7 +99,7 @@ def load_progress_data():
     try:
         return pd.read_csv(PROGRESS_FILE)
     except FileNotFoundError:
-        return pd.DataFrame(columns=["username", "phrase"])
+        return pd.DataFrame(columns=["username", "phrase", "image"])
 
 # Login system
 def login():
@@ -143,39 +146,15 @@ def sign_up():
         else:
             st.error("Passwords do not match")
 
-# Training module
-def training():
-    st.subheader("Sign Language Training")
-    for phrase, video in SIGN_LANGUAGE_DATA.items():
-        st.write(f"Phrase: {phrase}")
-        try:
-            st.video(video)
-        except Exception as e:
-            st.error(f"Error loading video: {str(e)}")
-        if st.button(f"Mark {phrase} as learned"):
-            track_progress(st.session_state['username'], phrase)
-
-# ASL alphabet training
-def asl_alphabet_training():
-    st.subheader("Learn the ASL Alphabet")
-    for letter, video in ASL_ALPHABET.items():
-        st.write(f"Letter: {letter}")
-        try:
-            st.video(video)
-        except Exception as e:
-            st.error(f"Error loading video: {str(e)}")
-        if st.button(f"Mark {letter} as learned"):
-            track_progress(st.session_state['username'], letter)
-
 # Performance tracking
-def track_progress(username, phrase):
+def track_progress(username, phrase, image_path=None):
     progress_data = load_progress_data()
-    new_entry = pd.DataFrame([[username, phrase]], columns=["username", "phrase"])
+    new_entry = pd.DataFrame([[username, phrase, image_path]], columns=["username", "phrase", "image"])
     progress_data = pd.concat([progress_data, new_entry], ignore_index=True)
     save_progress_data(progress_data)
     st.success(f"'{phrase}' marked as learned!")
 
-# Display user progress
+# Display user progress with images
 def show_progress(username):
     st.subheader("Your Learning Progress")
     progress_data = load_progress_data()
@@ -183,7 +162,13 @@ def show_progress(username):
     if user_progress.empty:
         st.write("No progress yet.")
     else:
-        st.table(user_progress)
+        st.write("Here is your progress:")
+        for index, row in user_progress.iterrows():
+            st.write(f"Phrase: {row['phrase']}")
+            if row['image']:
+                st.image(row['image'], caption=f"Image of learned sign for {row['phrase']}", use_column_width=True)
+            else:
+                st.write("No image available")
 
 # Camera feature for sign detection
 def sign_detection():
@@ -202,75 +187,30 @@ def sign_detection():
 
         st.image(image, caption="Captured Sign", use_column_width=True)
 
-        # Simulate progress tracking for the recognized sign
-        if detected_sign:
-            st.write(f"Detected sign: {detected_sign}")
-            if st.button(f"Mark '{detected_sign}' as learned"):
-                track_progress(st.session_state['username'], detected_sign)
-                st.success(f"'{detected_sign}' marked as learned!")
+        # Save the image
+        image_path = os.path.join(IMAGES_DIR, f"{st.session_state['username']}_{detected_sign}.png")
+        cv2.imwrite(image_path, image)
 
-    else:
-        st.error("No image captured yet.")
+        # Track progress
+        track_progress(st.session_state['username'], detected_sign, image_path)
 
-# Quiz feature
-def quiz():
-    st.subheader("Sign Language Quiz")
+# Main function to run the app
+def main():
+    st.title("SignX: Learn American Sign Language (ASL)")
     
-    if 'current_question' not in st.session_state:
-        st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-
-    question = st.session_state['current_question']
-    
-    st.write(f"What does this sign mean?")
-    st.video(SIGN_LANGUAGE_DATA[question])
-
-    answer = st.text_input("Your answer")
-
-    if st.button("Submit"):
-        if answer.strip().lower() == question.lower():
-            st.success("Correct!")
-            track_progress(st.session_state['username'], question)
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-        else:
-            st.error(f"Incorrect! The correct answer was '{question}'.")
-
-# Feedback system
-def feedback():
-    st.subheader("Feedback")
-    feedback_text = st.text_area("Please provide your feedback or suggestions:")
-    if st.button("Submit Feedback"):
-        if feedback_text:
-            st.success("Thank you for your feedback!")
-
-# Main app flow
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-
-if not st.session_state['logged_in']:
-    st.sidebar.title("SignX: Next-Gen Technology for Deaf Communications")
-    login_option = st.sidebar.selectbox("Login or Sign Up", ["Login", "Sign Up"])
-
-    if login_option == "Login":
+    if 'logged_in' not in st.session_state or not st.session_state['logged_in']:
         login()
-    else:
-        sign_up()
-else:
-    st.sidebar.title(f"Welcome, {st.session_state['username']}")
-    action = st.sidebar.selectbox("Action", ["Training", "ASL Alphabet", "Your Progress", "Quiz", "Sign Detection", "Feedback", "Logout"])
 
-    if action == "Training":
-        training()
-    elif action == "ASL Alphabet":
-        asl_alphabet_training()
-    elif action == "Your Progress":
-        show_progress(st.session_state['username'])
-    elif action == "Quiz":
-        quiz()
-    elif action == "Sign Detection":
-        sign_detection()
-    elif action == "Feedback":
-        feedback()
-    elif action == "Logout":
-        st.session_state['logged_in'] = False
-        del st.session_state['username']
-        st.write("You have been logged out.")
+        if st.button("Don't have an account? Sign Up"):
+            sign_up()
+    else:
+        menu = ["Sign Detection", "Your Learning Progress"]
+        choice = st.sidebar.selectbox("Choose an option", menu)
+
+        if choice == "Sign Detection":
+            sign_detection()
+        elif choice == "Your Learning Progress":
+            show_progress(st.session_state['username'])
+
+if __name__ == "__main__":
+    main()
