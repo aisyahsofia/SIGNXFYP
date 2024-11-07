@@ -6,7 +6,6 @@ import cv2
 import numpy as np
 import os
 
-
 print(cv2.__version__)
 
 # File paths
@@ -15,17 +14,12 @@ PROGRESS_FILE = "progress.csv"
 SIGN_DATA_FILE = "sign_language_data.csv"
 
 # Define the base directory where videos are stored
-VIDEO_BASE_PATH = "C:/Users/puter/Videos/"  # Update this with your correct path
+VIDEO_BASE_PATH = "C:/Users/puter/Downloads/"  # Updated path to Downloads folder
 
 # Check if the path exists to avoid file errors
 if not os.path.exists(VIDEO_BASE_PATH):
     st.error(f"The video base path does not exist: {VIDEO_BASE_PATH}")
     raise FileNotFoundError(f"Video base path not found: {VIDEO_BASE_PATH}")
-
-# Ensure that video files exist in the base path
-missing_files = [file for file in SIGN_LANGUAGE_DATA.values() if not os.path.exists(file)]
-if missing_files:
-    st.error(f"These video files are missing: {', '.join(missing_files)}")
 
 # Sign language data for training
 SIGN_LANGUAGE_DATA = {
@@ -80,7 +74,6 @@ ASL_ALPHABET = {
     'Y': os.path.join(VIDEO_BASE_PATH, 'Y ASL.mp4'),
     'Z': os.path.join(VIDEO_BASE_PATH, 'Z ASL.mp4')
 }
-
 
 # Hashing function for passwords
 def hash_password(password):
@@ -197,8 +190,8 @@ def main():
             asl_alphabet_training()
         elif page == "Logout":
             st.session_state['logged_in'] = False
-            st.sidebar.write("You have logged out.")
-            st.experimental_rerun()
+            st.session_state['username'] = None
+            st.success("You have logged out.")
     else:
         page = st.sidebar.selectbox("Choose a page", ["Login", "Sign Up"])
         if page == "Login":
