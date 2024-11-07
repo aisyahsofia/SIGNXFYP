@@ -6,67 +6,68 @@ import cv2
 import numpy as np
 import os
 
-
 print(cv2.__version__)
-
 
 # File paths
 USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
 SIGN_DATA_FILE = "sign_language_data.csv"
 
+# Raw GitHub URLs for the video files
+BASE_URL = "https://raw.githubusercontent.com/yourusername/yourrepository/main/ASL%20VIDEOS/"
+
 # Sign language data for training
 SIGN_LANGUAGE_DATA = {
-    "Hello": "HELLO ASL.mp4",
-    "Good Morning": "GOODMORNING ASL.mp4",
-    "Good Afternoon": "GOODAFTERNOON ASL.mp4",
-    "Good Evening": "GOODEVENING ASL.mp4",
-    "Good Night": "GOODNIGHT ASL.mp4",
-    "Thank You": "THANKYOU.mp4",
-    "Sorry": "SORRY ASL.mp4",
-    "Please": "PLEASE ASL.mp4",
-    "Yes": "YES ASL.mp4",
-    "No": "NO ASL.mp4",
-    "How Are You?": "HOWAREYOU ASL.mp4",
-    "My Name Is...": "MYNAMEIS ASL.mp4",
-    "What Is Your Name?": "WHATISYOURNAME ASL.mp4",
-    "I Am Deaf": "IMDEAF ASL.mp4",
-    "I Am Hearing": "IMHEARING ASL.mp4",
-    "Where Is the Toilet?": "WHEREISTHETOILET ASL.mp4",
-    "Help me": "HELPME ASL.mp4",
-    "I Love You": "ILOVEYOU ASL.mp4",
-    "See You Later": "SEEYOULATER ASL.mp4",
-    "Goodbye": "GOODBYE ASL.mp4",
+    "Hello": f"{BASE_URL}HELLO%20ASL.mp4",
+    "Good Morning": f"{BASE_URL}GOODMORNING%20ASL.mp4",
+    "Good Afternoon": f"{BASE_URL}GOODAFTERNOON%20ASL.mp4",
+    "Good Evening": f"{BASE_URL}GOODEVENING%20ASL.mp4",
+    "Good Night": f"{BASE_URL}GOODNIGHT%20ASL.mp4",
+    "Thank You": f"{BASE_URL}THANKYOU.mp4",
+    "Sorry": f"{BASE_URL}SORRY%20ASL.mp4",
+    "Please": f"{BASE_URL}PLEASE%20ASL.mp4",
+    "Yes": f"{BASE_URL}YES%20ASL.mp4",
+    "No": f"{BASE_URL}NO%20ASL.mp4",
+    "How Are You?": f"{BASE_URL}HOWAREYOU%20ASL.mp4",
+    "My Name Is...": f"{BASE_URL}MYNAMEIS%20ASL.mp4",
+    "What Is Your Name?": f"{BASE_URL}WHATISYOURNAME%20ASL.mp4",
+    "I Am Deaf": f"{BASE_URL}IMDEAF%20ASL.mp4",
+    "I Am Hearing": f"{BASE_URL}IMHEARING%20ASL.mp4",
+    "Where Is the Toilet?": f"{BASE_URL}WHEREISTHETOILET%20ASL.mp4",
+    "Help me": f"{BASE_URL}HELPME%20ASL.mp4",
+    "I Love You": f"{BASE_URL}ILOVEYOU%20ASL.mp4",
+    "See You Later": f"{BASE_URL}SEEYOULATER%20ASL.mp4",
+    "Goodbye": f"{BASE_URL}GOODBYE%20ASL.mp4",
 }
 
 # Basic ASL alphabet
 ASL_ALPHABET = {
-    'A': 'A ASL.mp4',
-    'B': 'B ASL.mp4',
-    'C': 'C ASL.mp4',
-    'D': 'D ASL.mp4',
-    'E': 'E ASL.mp4',
-    'F': 'F ASL.mp4',
-    'G': 'G ASL.mp4',
-    'H': 'H ASL.mp4',
-    'I': 'I ASL.mp4',
-    'J': 'J ASL.mp4',
-    'K': 'K ASL.mp4',
-    'L': 'L ASL.mp4',
-    'M': 'M ASL.mp4',
-    'N': 'N ASL.mp4',
-    'O': 'O ASL.mp4',
-    'P': 'P ASL.mp4',
-    'Q': 'Q ASL.mp4',
-    'R': 'R ASL.mp4',
-    'S': 'S ASL.mp4',
-    'T': 'T ASL.mp4',
-    'U': 'U ASL.mp4',
-    'V': 'V ASL.mp4',
-    'W': 'W ASL.mp4',
-    'X': 'X ASL.mp4',
-    'Y': 'Y ASL.mp4',
-    'Z': 'Z ASL.mp4'
+    'A': f"{BASE_URL}A%20ASL.mp4",
+    'B': f"{BASE_URL}B%20ASL.mp4",
+    'C': f"{BASE_URL}C%20ASL.mp4",
+    'D': f"{BASE_URL}D%20ASL.mp4",
+    'E': f"{BASE_URL}E%20ASL.mp4",
+    'F': f"{BASE_URL}F%20ASL.mp4",
+    'G': f"{BASE_URL}G%20ASL.mp4",
+    'H': f"{BASE_URL}H%20ASL.mp4",
+    'I': f"{BASE_URL}I%20ASL.mp4",
+    'J': f"{BASE_URL}J%20ASL.mp4",
+    'K': f"{BASE_URL}K%20ASL.mp4",
+    'L': f"{BASE_URL}L%20ASL.mp4",
+    'M': f"{BASE_URL}M%20ASL.mp4",
+    'N': f"{BASE_URL}N%20ASL.mp4",
+    'O': f"{BASE_URL}O%20ASL.mp4",
+    'P': f"{BASE_URL}P%20ASL.mp4",
+    'Q': f"{BASE_URL}Q%20ASL.mp4",
+    'R': f"{BASE_URL}R%20ASL.mp4",
+    'S': f"{BASE_URL}S%20ASL.mp4",
+    'T': f"{BASE_URL}T%20ASL.mp4",
+    'U': f"{BASE_URL}U%20ASL.mp4",
+    'V': f"{BASE_URL}V%20ASL.mp4",
+    'W': f"{BASE_URL}W%20ASL.mp4",
+    'X': f"{BASE_URL}X%20ASL.mp4",
+    'Y': f"{BASE_URL}Y%20ASL.mp4",
+    'Z': f"{BASE_URL}Z%20ASL.mp4"
 }
 
 # Hashing function for passwords
@@ -205,57 +206,43 @@ def quiz():
         st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
 
     question = st.session_state['current_question']
+    st.write(f"What is the ASL sign for: {question}")
     
-    st.write(f"What does this sign mean?")
-    st.video(SIGN_LANGUAGE_DATA[question])
-
-    answer = st.text_input("Your answer")
-
-    if st.button("Submit"):
-        if answer.strip().lower() == question.lower():
+    answer = st.text_input("Your answer (type it in text):")
+    if st.button("Submit Answer"):
+        if answer.lower() == question.lower():
             st.success("Correct!")
-            track_progress(st.session_state['username'], question)
             st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
         else:
-            st.error(f"Incorrect! The correct answer was '{question}'.")
+            st.error("Incorrect. Try again.")
 
-# Feedback system
-def feedback():
-    st.subheader("Feedback")
-    feedback_text = st.text_area("Please provide your feedback or suggestions:")
-    if st.button("Submit Feedback"):
-        if feedback_text:
-            st.success("Thank you for your feedback!")
+# Main app logic
+def main():
+    st.set_page_config(page_title="SignX: Learn ASL", layout="wide")
+    
+    if "logged_in" in st.session_state and st.session_state["logged_in"]:
+        st.sidebar.success(f"Logged in as {st.session_state['username']}")
+        
+        app_mode = st.sidebar.selectbox("Choose Mode", ("Training", "ASL Alphabet", "Progress", "Quiz", "Sign Detection"))
+        
+        if app_mode == "Training":
+            training()
+        elif app_mode == "ASL Alphabet":
+            asl_alphabet_training()
+        elif app_mode == "Progress":
+            show_progress(st.session_state['username'])
+        elif app_mode == "Quiz":
+            quiz()
+        elif app_mode == "Sign Detection":
+            sign_detection()
 
-# Main app flow
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-
-if not st.session_state['logged_in']:
-    st.sidebar.title("SignX: Next-Gen Technology for Deaf Communications")
-    login_option = st.sidebar.selectbox("Login or Sign Up", ["Login", "Sign Up"])
-
-    if login_option == "Login":
-        login()
     else:
-        sign_up()
-else:
-    st.sidebar.title(f"Welcome, {st.session_state['username']}")
-    action = st.sidebar.selectbox("Action", ["Training", "ASL Alphabet", "Your Progress", "Quiz", "Sign Detection", "Feedback", "Logout"])
+        st.sidebar.selectbox("Login or Sign Up", ("Login", "Sign Up"))
+        mode = st.sidebar.radio("Choose Action", ["Login", "Sign Up"])
+        if mode == "Login":
+            login()
+        elif mode == "Sign Up":
+            sign_up()
 
-    if action == "Training":
-        training()
-    elif action == "ASL Alphabet":
-        asl_alphabet_training()
-    elif action == "Your Progress":
-        show_progress(st.session_state['username'])
-    elif action == "Quiz":
-        quiz()
-    elif action == "Sign Detection":
-        sign_detection()
-    elif action == "Feedback":
-        feedback()
-    elif action == "Logout":
-        st.session_state['logged_in'] = False
-        del st.session_state['username']
-        st.write("You have been logged out.")
+if __name__ == "__main__":
+    main()
