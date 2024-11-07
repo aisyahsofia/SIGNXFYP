@@ -180,16 +180,10 @@ def show_progress(username):
     st.subheader("Your Learning Progress")
     progress_data = load_progress_data()
     user_progress = progress_data[progress_data['username'] == username]
-    
     if user_progress.empty:
         st.write("No progress yet.")
     else:
-        st.write("Here is your progress:")
-        # Display the progress in a table format with images
-        progress_data_display = user_progress[['phrase', 'image']]
-
-        # Display the table with images
-        st.dataframe(progress_data_display)
+        st.table(user_progress)
 
 # Camera feature for sign detection
 def sign_detection():
