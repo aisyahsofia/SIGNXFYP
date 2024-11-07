@@ -5,12 +5,20 @@ import cv2
 import numpy as np
 import os
 import tensorflow as tf  # Import TensorFlow
+import requests  # To download the model
 
 print(cv2.__version__)
 
-# Load the trained model (adjust the path accordingly)
-MODEL_PATH = "C:/Users/puter/Downloads/final/data/keraspt1/model.keras"  # Path to your trained model
-model = tf.keras.models.load_model(MODEL_PATH)
+# URL to your .keras model file hosted on GitHub (raw URL)
+MODEL_URL = "https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/your_model.keras"  # Replace with your actual model URL
+
+# Download the model from GitHub and save it locally
+response = requests.get(MODEL_URL)
+with open("model.keras", 'wb') as f:
+    f.write(response.content)
+
+# Load the trained model
+model = tf.keras.models.load_model("model.keras")
 
 # File paths
 USERS_FILE = "users.csv"
