@@ -173,7 +173,7 @@ def track_progress(username, phrase):
     new_entry = pd.DataFrame([[username, phrase]], columns=["username", "phrase"])
     progress_data = pd.concat([progress_data, new_entry], ignore_index=True)
     save_progress_data(progress_data)
-    st.success(f"{phrase} marked as learned!")
+    st.success(f"'{phrase}' marked as learned!")
 
 # Display user progress
 def show_progress(username):
@@ -185,19 +185,30 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
-# Camera feature for sign detection (works on mobile)
+# Camera feature for sign detection
 def sign_detection():
     st.subheader("Sign Detection Camera")
-    st.write("Point your phone camera to detect ASL signs.")
+    st.write("Point your camera to detect ASL signs.")
     
     camera_input = st.camera_input("Capture Image of your Sign")
 
     if camera_input is not None:
-        # Process the image for sign detection
         image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
-        
+
         # Placeholder for model predictions
-        st.write("This feature requires a model for sign detection.")
+        # You can integrate a machine learning model here for sign recognition
+        # For this example, let's assume the model recognized "Hello"
+        detected_sign = "Hello"  # Placeholder for detected sign
+
+        st.image(image, caption="Captured Sign", use_column_width=True)
+
+        # Simulate progress tracking for the recognized sign
+        if detected_sign:
+            st.write(f"Detected sign: {detected_sign}")
+            if st.button(f"Mark '{detected_sign}' as learned"):
+                track_progress(st.session_state['username'], detected_sign)
+                st.success(f"'{detected_sign}' marked as learned!")
+
     else:
         st.error("No image captured yet.")
 
