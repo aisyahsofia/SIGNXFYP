@@ -5,10 +5,13 @@ import random
 import cv2
 import numpy as np
 import os
-
+import tensorflow as tf  # Import TensorFlow
 
 print(cv2.__version__)
 
+# Load the trained model (adjust the path accordingly)
+MODEL_PATH = "C:/Users/puter/Downloads/final/data/keraspt1/model.keras"  # Path to your trained model
+model = tf.keras.models.load_model(MODEL_PATH)
 
 # File paths
 USERS_FILE = "users.csv"
@@ -122,69 +125,6 @@ def login():
         else:
             st.error("Username not found")
 
-# Sign-up system
-def sign_up():
-    st.subheader("Sign Up")
-    username = st.text_input("New Username")
-    password = st.text_input("New Password", type="password")
-    confirm_password = st.text_input("Confirm Password", type="password")
-
-    if st.button("Sign Up"):
-        if password == confirm_password:
-            users_data = load_user_data()
-            if username not in users_data['username'].values:
-                hashed_password = hash_password(password)
-                new_user = pd.DataFrame([[username, hashed_password]], columns=["username", "password"])
-                users_data = pd.concat([users_data, new_user], ignore_index=True)
-                save_user_data(users_data)
-                st.success("Account created successfully! Please log in.")
-            else:
-                st.error("Username already exists!")
-        else:
-            st.error("Passwords do not match")
-
-# Training module
-def training():
-    st.subheader("Sign Language Training")
-    for phrase, video in SIGN_LANGUAGE_DATA.items():
-        st.write(f"Phrase: {phrase}")
-        try:
-            st.video(video)
-        except Exception as e:
-            st.error(f"Error loading video: {str(e)}")
-        if st.button(f"Mark {phrase} as learned"):
-            track_progress(st.session_state['username'], phrase)
-
-# ASL alphabet training
-def asl_alphabet_training():
-    st.subheader("Learn the ASL Alphabet")
-    for letter, video in ASL_ALPHABET.items():
-        st.write(f"Letter: {letter}")
-        try:
-            st.video(video)
-        except Exception as e:
-            st.error(f"Error loading video: {str(e)}")
-        if st.button(f"Mark {letter} as learned"):
-            track_progress(st.session_state['username'], letter)
-
-# Performance tracking
-def track_progress(username, phrase):
-    progress_data = load_progress_data()
-    new_entry = pd.DataFrame([[username, phrase]], columns=["username", "phrase"])
-    progress_data = pd.concat([progress_data, new_entry], ignore_index=True)
-    save_progress_data(progress_data)
-    st.success(f"'{phrase}' marked as learned!")
-
-# Display user progress
-def show_progress(username):
-    st.subheader("Your Learning Progress")
-    progress_data = load_progress_data()
-    user_progress = progress_data[progress_data['username'] == username]
-    if user_progress.empty:
-        st.write("No progress yet.")
-    else:
-        st.table(user_progress)
-
 # Camera feature for sign detection
 def sign_detection():
     st.subheader("Sign Detection Camera")
@@ -195,52 +135,30 @@ def sign_detection():
     if camera_input is not None:
         image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
 
-        # Placeholder for model predictions
-        # You can integrate a machine learning model here for sign recognition
-        # For this example, let's assume the model recognized "Hello"
-        detected_sign = "Hello"  # Placeholder for detected sign
+        # Preprocess image for model prediction
+        img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        img = cv2.resize(img, (224, 224))  # Resize to the input shape expected by the model (adjust based on your model)
+        img = np.expand_dims(img, axis=0)  # Add batch dimension
+        img = img / 255.0  # Normalize if needed (depending on model training)
 
+        # Make prediction
+        prediction = model.predict(img)
+        predicted_class = np.argmax(prediction, axis=1)
+
+        # Mapping predicted class to ASL sign
+        detected_sign = list(SIGN_LANGUAGE_DATA.keys())[predicted_class[0]]
+        
         st.image(image, caption="Captured Sign", use_column_width=True)
+        st.write(f"Detected sign: {detected_sign}")
 
         # Simulate progress tracking for the recognized sign
         if detected_sign:
-            st.write(f"Detected sign: {detected_sign}")
             if st.button(f"Mark '{detected_sign}' as learned"):
                 track_progress(st.session_state['username'], detected_sign)
                 st.success(f"'{detected_sign}' marked as learned!")
 
     else:
         st.error("No image captured yet.")
-
-# Quiz feature
-def quiz():
-    st.subheader("Sign Language Quiz")
-    
-    if 'current_question' not in st.session_state:
-        st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-
-    question = st.session_state['current_question']
-    
-    st.write(f"What does this sign mean?")
-    st.video(SIGN_LANGUAGE_DATA[question])
-
-    answer = st.text_input("Your answer")
-
-    if st.button("Submit"):
-        if answer.strip().lower() == question.lower():
-            st.success("Correct!")
-            track_progress(st.session_state['username'], question)
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-        else:
-            st.error(f"Incorrect! The correct answer was '{question}'.")
-
-# Feedback system
-def feedback():
-    st.subheader("Feedback")
-    feedback_text = st.text_area("Please provide your feedback or suggestions:")
-    if st.button("Submit Feedback"):
-        if feedback_text:
-            st.success("Thank you for your feedback!")
 
 # Main app flow
 if 'logged_in' not in st.session_state:
@@ -256,21 +174,20 @@ if not st.session_state['logged_in']:
         sign_up()
 else:
     st.sidebar.title(f"Welcome, {st.session_state['username']}")
-    action = st.sidebar.selectbox("Action", ["Training", "ASL Alphabet", "Your Progress", "Quiz", "Sign Detection", "Feedback", "Logout"])
+    action = st.sidebar.selectbox("Action", ["Sign Detection", "Training", "Your Progress", "Quiz", "Feedback", "Logout"])
 
-    if action == "Training":
+    if action == "Sign Detection":
+        sign_detection()
+    elif action == "Training":
         training()
-    elif action == "ASL Alphabet":
-        asl_alphabet_training()
     elif action == "Your Progress":
         show_progress(st.session_state['username'])
     elif action == "Quiz":
         quiz()
-    elif action == "Sign Detection":
-        sign_detection()
     elif action == "Feedback":
         feedback()
     elif action == "Logout":
         st.session_state['logged_in'] = False
-        del st.session_state['username']
-        st.write("You have been logged out.")
+        st.session_state['username'] = ""
+        st.sidebar.write("You have logged out.")
+
