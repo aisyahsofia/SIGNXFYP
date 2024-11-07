@@ -6,9 +6,7 @@ import cv2
 import numpy as np
 import os
 
-
 print(cv2.__version__)
-
 
 # File paths
 USERS_FILE = "users.csv"
@@ -204,79 +202,41 @@ def sign_detection():
         # Placeholder for model predictions
         # You can integrate a machine learning model here for sign recognition
         # For this example, let's assume the model recognized "Hello"
-        detected_sign = "Hello"  # Placeholder for detected sign
+        detected_sign = "Hello"  # Example
+        st.write(f"Detected Sign: {detected_sign}")
+        st.image(image, channels="BGR")
 
-        st.image(image, caption="Captured Sign", use_column_width=True)
+# Main page layout
+def main_page():
+    st.title("SignX: Next-Gen Technology for Deaf Communications")
 
-        # Simulate progress tracking for the recognized sign
-        if detected_sign:
-            st.write(f"Detected sign: {detected_sign}")
-            if st.button(f"Mark '{detected_sign}' as learned"):
-                track_progress(st.session_state['username'], detected_sign)
-                st.success(f"'{detected_sign}' marked as learned!")
+    menu = ["Login", "Sign Up", "Training", "ASL Alphabet", "Progress", "Sign Detection"]
+    choice = st.sidebar.selectbox("Select an option", menu)
 
-    else:
-        st.error("No image captured yet.")
-
-# Quiz feature
-def quiz():
-    st.subheader("Sign Language Quiz")
-    
-    if 'current_question' not in st.session_state:
-        st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-
-    question = st.session_state['current_question']
-    
-    st.write(f"What does this sign mean?")
-    st.video(SIGN_LANGUAGE_DATA[question])
-
-    answer = st.text_input("Your answer")
-
-    if st.button("Submit"):
-        if answer.strip().lower() == question.lower():
-            st.success("Correct!")
-            track_progress(st.session_state['username'], question)
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-        else:
-            st.error(f"Incorrect! The correct answer was '{question}'.")
-
-# Feedback system
-def feedback():
-    st.subheader("Feedback")
-    feedback_text = st.text_area("Please provide your feedback or suggestions:")
-    if st.button("Submit Feedback"):
-        if feedback_text:
-            st.success("Thank you for your feedback!")
-
-# Main app flow
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-
-if not st.session_state['logged_in']:
-    st.sidebar.title("SignX: Next-Gen Technology for Deaf Communications")
-    login_option = st.sidebar.selectbox("Login or Sign Up", ["Login", "Sign Up"])
-
-    if login_option == "Login":
+    if choice == "Login":
         login()
-    else:
+    elif choice == "Sign Up":
         sign_up()
-else:
-    st.sidebar.title(f"Welcome, {st.session_state['username']}")
-    action = st.sidebar.selectbox("Action", ["Training", "ASL Alphabet", "Your Progress", "Quiz", "Sign Detection", "Feedback", "Logout"])
+    elif choice == "Training":
+        if 'logged_in' in st.session_state and st.session_state['logged_in']:
+            training()
+        else:
+            st.warning("Please log in first")
+    elif choice == "ASL Alphabet":
+        if 'logged_in' in st.session_state and st.session_state['logged_in']:
+            asl_alphabet_training()
+        else:
+            st.warning("Please log in first")
+    elif choice == "Progress":
+        if 'logged_in' in st.session_state and st.session_state['logged_in']:
+            show_progress(st.session_state['username'])
+        else:
+            st.warning("Please log in first")
+    elif choice == "Sign Detection":
+        if 'logged_in' in st.session_state and st.session_state['logged_in']:
+            sign_detection()
+        else:
+            st.warning("Please log in first")
 
-    if action == "Training":
-        training()
-    elif action == "ASL Alphabet":
-        asl_alphabet_training()
-    elif action == "Your Progress":
-        show_progress(st.session_state['username'])
-    elif action == "Quiz":
-        quiz()
-    elif action == "Sign Detection":
-        sign_detection()
-    elif action == "Feedback":
-        feedback()
-    elif action == "Logout":
-        st.session_state['logged_in'] = False
-        del st.session_state['username']
-        st.write("You have been logged out.")
+if __name__ == "__main__":
+    main_page()
