@@ -216,28 +216,24 @@ def sign_detection():
 def quiz():
     st.subheader("Sign Language Quiz")
     
-    # Ensure session state is initialized for the current question
     if 'current_question' not in st.session_state:
         st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
 
     question = st.session_state['current_question']
     
-    # Display the question
     st.write(f"What does this sign mean?")
-    st.video(SIGN_LANGUAGE_DATA[question])  # Display the video
+    st.video(SIGN_LANGUAGE_DATA[question])
 
-    # Collect user input
     answer = st.text_input("Your answer")
 
     if st.button("Submit"):
-        # Check if the answer is correct
         if answer.strip().lower() == question.lower():
             st.success("Correct!")
-            # Track progress if correct
             track_progress(st.session_state['username'], question)
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))  # Load next question
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
         else:
             st.error(f"Incorrect! The correct answer was '{question}'.")
+
 
 # Feedback system
 def feedback():
