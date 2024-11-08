@@ -217,23 +217,48 @@ def sign_detection():
 def quiz():
     st.subheader("Sign Language Quiz")
     
+    # Check if the current question is already stored in session state, if not choose randomly
     if 'current_question' not in st.session_state:
-        st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+        # Randomly decide whether to pick an ASL letter or a phrase
+        is_letter_quiz = random.choice([True, False])
+        
+        if is_letter_quiz:
+            # Pick a random letter from ASL alphabet
+            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
+            st.session_state['is_letter_quiz'] = True
+        else:
+            # Pick a random phrase from SIGN_LANGUAGE_DATA
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+            st.session_state['is_letter_quiz'] = False
 
     question = st.session_state['current_question']
+    is_letter_quiz = st.session_state['is_letter_quiz']
     
-    st.write(f"What does this sign mean?")
-    st.video(SIGN_LANGUAGE_DATA[question])
+    if is_letter_quiz:
+        # Show the ASL letter quiz
+        st.write(f"What does this letter represent?")
+        st.video(ASL_ALPHABET[question])
+    else:
+        # Show the ASL phrase quiz
+        st.write(f"What does this sign mean?")
+        st.video(SIGN_LANGUAGE_DATA[question])
 
     answer = st.text_input("Your answer")
 
     if st.button("Submit"):
-        if answer.strip().lower() == question.lower():
+        correct_answer = question.lower()
+
+        # Check if the user’s answer matches the correct answer
+        if answer.strip().lower() == correct_answer:
             st.success("Correct!")
             track_progress(st.session_state['username'], question)
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+            
+            # Randomize the next question type (either letter or phrase)
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys())) if not is_letter_quiz else random.choice(list(ASL_ALPHABET.keys()))
+            st.session_state['is_letter_quiz'] = not is_letter_quiz  # Flip the question type
         else:
             st.error(f"Incorrect! The correct answer was '{question}'.")
+
 
 # Feedback system
 def feedback():
