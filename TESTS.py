@@ -143,108 +143,20 @@ def sign_up():
         else:
             st.error("Passwords do not match")
 
-# Training module
-def training():
-    st.subheader("Sign Language Training")
-    for phrase, video in SIGN_LANGUAGE_DATA.items():
-        st.write(f"Phrase: {phrase}")
-        try:
-            st.video(video)
-        except Exception as e:
-            st.error(f"Error loading video: {str(e)}")
-        if st.button(f"Mark {phrase} as learned"):
-            track_progress(st.session_state['username'], phrase)
-
-# ASL alphabet training
-def asl_alphabet_training():
-    st.subheader("Learn the ASL Alphabet")
-    for letter, video in ASL_ALPHABET.items():
-        st.write(f"Letter: {letter}")
-        try:
-            st.video(video)
-        except Exception as e:
-            st.error(f"Error loading video: {str(e)}")
-        if st.button(f"Mark {letter} as learned"):
-            track_progress(st.session_state['username'], letter)
-
-# Performance tracking
-def track_progress(username, phrase):
-    progress_data = load_progress_data()
-    new_entry = pd.DataFrame([[username, phrase]], columns=["username", "phrase"])
-    progress_data = pd.concat([progress_data, new_entry], ignore_index=True)
-    save_progress_data(progress_data)
-    st.success(f"'{phrase}' marked as learned!")
-
-# Display user progress
-def show_progress(username):
-    st.subheader("Your Learning Progress")
-    progress_data = load_progress_data()
-    user_progress = progress_data[progress_data['username'] == username]
-    if user_progress.empty:
-        st.write("No progress yet.")
+# Theme toggle feature
+def set_theme():
+    theme = st.sidebar.radio("Choose Theme", ["Light", "Dark"])
+    if theme == "Dark":
+        st.set_page_config(page_title="SignX", page_icon=":guardsman:", layout="centered", initial_sidebar_state="expanded", theme="dark")
     else:
-        st.table(user_progress)
-
-# Camera feature for sign detection
-def sign_detection():
-    st.subheader("Sign Detection Camera")
-    st.write("Point your camera to detect ASL signs.")
-    
-    camera_input = st.camera_input("Capture Image of your Sign")
-
-    if camera_input is not None:
-        image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
-
-        # Placeholder for model predictions
-        # You can integrate a machine learning model here for sign recognition
-        # For this example, let's assume the model recognized "Hello"
-        detected_sign = "Hello"  # Placeholder for detected sign
-
-        st.image(image, caption="Captured Sign", use_column_width=True)
-
-        # Simulate progress tracking for the recognized sign
-        if detected_sign:
-            st.write(f"Detected sign: {detected_sign}")
-            if st.button(f"Mark '{detected_sign}' as learned"):
-                track_progress(st.session_state['username'], detected_sign)
-                st.success(f"'{detected_sign}' marked as learned!")
-
-    else:
-        st.error("No image captured yet.")
-
-# Quiz feature
-def quiz():
-    st.subheader("Sign Language Quiz")
-    
-    if 'current_question' not in st.session_state:
-        st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-
-    question = st.session_state['current_question']
-    
-    st.write(f"What does this sign mean?")
-    st.video(SIGN_LANGUAGE_DATA[question])
-
-    answer = st.text_input("Your answer")
-
-    if st.button("Submit"):
-        if answer.strip().lower() == question.lower():
-            st.success("Correct!")
-            track_progress(st.session_state['username'], question)
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-        else:
-            st.error(f"Incorrect! The correct answer was '{question}'.")
-
-# Feedback system
-def feedback():
-    st.subheader("Feedback")
-    feedback_text = st.text_area("Please provide your feedback or suggestions:")
-    if st.button("Submit Feedback"):
-        if feedback_text:
-            st.success("Thank you for your feedback!")
+        st.set_page_config(page_title="SignX", page_icon=":guardsman:", layout="centered", initial_sidebar_state="expanded", theme="light")
 
 # Main app flow
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
+
+# Apply theme
+set_theme()
 
 if not st.session_state['logged_in']:
     st.sidebar.title("SignX: Next-Gen Technology for Deaf Communications")
