@@ -213,51 +213,40 @@ def sign_detection():
     else:
         st.error("No image captured yet.")
 
-# Quiz feature
 def quiz():
     st.subheader("Sign Language Quiz")
-    
-    # Check if the current question is already stored in session state, if not choose randomly
+
+    # Initialize the current question in session state if not already set
     if 'current_question' not in st.session_state:
-        # Randomly decide whether to pick an ASL letter or a phrase
-        is_letter_quiz = random.choice([True, False])
-        
-        if is_letter_quiz:
-            # Pick a random letter from ASL alphabet
-            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
-            st.session_state['is_letter_quiz'] = True
-        else:
-            # Pick a random phrase from SIGN_LANGUAGE_DATA
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-            st.session_state['is_letter_quiz'] = False
+        st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
 
     question = st.session_state['current_question']
-    is_letter_quiz = st.session_state['is_letter_quiz']
     
-    if is_letter_quiz:
-        # Show the ASL letter quiz
-        st.write(f"What does this letter represent?")
-        st.video(ASL_ALPHABET[question])
-    else:
-        # Show the ASL phrase quiz
-        st.write(f"What does this sign mean?")
-        st.video(SIGN_LANGUAGE_DATA[question])
+    # Display the current question video
+    st.write(f"What does this sign mean?")
+    st.video(SIGN_LANGUAGE_DATA[question])
 
+    # Input for the answer
     answer = st.text_input("Your answer")
 
+    # Check if the answer is correct and show the results
     if st.button("Submit"):
-        correct_answer = question.lower()
-
-        # Check if the user’s answer matches the correct answer
-        if answer.strip().lower() == correct_answer:
+        if answer.strip().lower() == question.lower():
             st.success("Correct!")
             track_progress(st.session_state['username'], question)
-            
-            # Randomize the next question type (either letter or phrase)
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys())) if not is_letter_quiz else random.choice(list(ASL_ALPHABET.keys()))
-            st.session_state['is_letter_quiz'] = not is_letter_quiz  # Flip the question type
         else:
             st.error(f"Incorrect! The correct answer was '{question}'.")
+
+        # After submission, disable the answer input and show the "Next" button
+        st.session_state['last_answer'] = answer  # Store the last answer
+        st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))  # Get the next question
+
+        # "Next" button to load the next question
+        if st.button("Next"):
+            st.session_state['last_answer'] = None  # Reset the answer input
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))  # Randomly select the next question
+            st.experimental_rerun()  # Refresh the page to show the next question
+
 
 
 # Feedback system
