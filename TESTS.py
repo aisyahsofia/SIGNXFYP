@@ -213,40 +213,27 @@ def sign_detection():
     else:
         st.error("No image captured yet.")
 
+# Quiz feature
 def quiz():
     st.subheader("Sign Language Quiz")
-
-    # Initialize the current question in session state if not already set
+    
     if 'current_question' not in st.session_state:
         st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
 
     question = st.session_state['current_question']
     
-    # Display the current question video
     st.write(f"What does this sign mean?")
     st.video(SIGN_LANGUAGE_DATA[question])
 
-    # Input for the answer
     answer = st.text_input("Your answer")
 
-    # Check if the answer is correct and show the results
     if st.button("Submit"):
         if answer.strip().lower() == question.lower():
             st.success("Correct!")
             track_progress(st.session_state['username'], question)
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
         else:
             st.error(f"Incorrect! The correct answer was '{question}'.")
-
-        # After submission, disable the answer input and show the "Next" button
-        st.session_state['last_answer'] = answer  # Store the last answer
-        st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))  # Get the next question
-
-        # "Next" button to load the next question
-        if st.button("Next"):
-            st.session_state['last_answer'] = None  # Reset the answer input
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))  # Randomly select the next question
-            st.experimental_rerun()  # Refresh the page to show the next question
-
 
 
 # Feedback system
