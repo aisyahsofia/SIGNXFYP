@@ -15,29 +15,16 @@ USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
 SIGN_DATA_FILE = "sign_language_data.csv"
 
-# Theme toggle
-if 'theme' not in st.session_state:
-    st.session_state['theme'] = 'Light'  # Default theme
-
-# Sidebar for theme selection
-theme_option = st.sidebar.radio("Choose Theme", ["Light", "Dark"])
-st.session_state['theme'] = theme_option
-
-# Apply background color based on theme
-if st.session_state['theme'] == 'Dark':
-    st.markdown(
-        """
-        <style>
-        body { background-color: #0e1117; }
-        </style>
-        """, unsafe_allow_html=True)
-else:
-    st.markdown(
-        """
-        <style>
-        body { background-color: #FFFFFF; }
-        </style>
-        """, unsafe_allow_html=True)
+# Apply dark mode based on system preferences
+st.markdown(
+    """
+    <style>
+    @media (prefers-color-scheme: dark) {
+        body { background-color: #0e1117; color: #FFFFFF; }
+    }
+    </style>
+    """, unsafe_allow_html=True
+)
 
 
 # Base URL for GitHub raw files
