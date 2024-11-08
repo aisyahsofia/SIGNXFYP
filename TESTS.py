@@ -23,23 +23,22 @@ if 'theme' not in st.session_state:
 theme_option = st.sidebar.radio("Choose Theme", ["Light", "Dark"])
 st.session_state['theme'] = theme_option
 
-# Apply theme settings
+# Apply background color based on theme
 if st.session_state['theme'] == 'Dark':
     st.markdown(
         """
         <style>
-        body { background-color: #0e1117; color: #FFFFFF; }
-        h1, h2, h3, h4, h5, h6 { color: #FFFFFF; }
+        body { background-color: #0e1117; }
         </style>
         """, unsafe_allow_html=True)
 else:
     st.markdown(
         """
         <style>
-        body { background-color: #FFFFFF; color: #000000; }
-        h1, h2, h3, h4, h5, h6 { color: #000000; }
+        body { background-color: #FFFFFF; }
         </style>
         """, unsafe_allow_html=True)
+
 
 # Base URL for GitHub raw files
 BASE_URL = "https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/"
