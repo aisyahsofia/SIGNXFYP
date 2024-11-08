@@ -213,7 +213,6 @@ def sign_detection():
     else:
         st.error("No image captured yet.")
 
-# Quiz feature
 def quiz():
     st.subheader("Sign Language Quiz")
     
@@ -222,18 +221,23 @@ def quiz():
 
     question = st.session_state['current_question']
     
-    st.write(f"What does this sign mean?")
-    st.video(SIGN_LANGUAGE_DATA[question])
+    st.write(f"Current question: {question}")  # Debugging line
 
-    answer = st.text_input("Your answer")
+    if question in SIGN_LANGUAGE_DATA:
+        st.write(f"What does this sign mean?")
+        st.video(SIGN_LANGUAGE_DATA[question])
 
-    if st.button("Submit"):
-        if answer.strip().lower() == question.lower():
-            st.success("Correct!")
-            track_progress(st.session_state['username'], question)
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-        else:
-            st.error(f"Incorrect! The correct answer was '{question}'.")
+        answer = st.text_input("Your answer")
+
+        if st.button("Submit"):
+            if answer.strip().lower() == question.lower():
+                st.success("Correct!")
+                track_progress(st.session_state['username'], question)
+                st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+            else:
+                st.error(f"Incorrect! The correct answer was '{question}'.")
+    else:
+        st.error(f"Error: {question} not found in the sign language data.")
 
 
 # Feedback system
