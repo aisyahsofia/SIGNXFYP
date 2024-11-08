@@ -15,7 +15,6 @@ USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
 SIGN_DATA_FILE = "sign_language_data.csv"
 
-
 # Base URL for GitHub raw files
 BASE_URL = "https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/"
 
@@ -101,7 +100,7 @@ def load_progress_data():
 
 # Login system
 def login():
-    st.title("SignX: Next-Gen Technology for Deaf Communications")
+    st.markdown("<h1 style='font-size: 36px; color: #FFFFFF;'>SignX: Next-Gen Technology for Deaf Communications</h1>", unsafe_allow_html=True)
     
     users_data = load_user_data()
     
