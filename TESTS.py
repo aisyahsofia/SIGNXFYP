@@ -57,7 +57,7 @@ def load_progress_data():
 
 # Login system
 def login():
-    st.markdown("<h1 style='font-size: 36px; color: #FFFFFF;'>SignX: Next-Gen Technology for Deaf Communications</h1>", unsafe_allow_html=True)
+   st.title("SignX: Next-Gen Technology for Deaf Communications")
     
     users_data = load_user_data()
     st.subheader("Login")
