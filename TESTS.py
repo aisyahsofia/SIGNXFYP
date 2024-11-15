@@ -5,9 +5,10 @@ import random
 import cv2
 import numpy as np
 import os
-from tensorflow.keras.models import load_model
+
 
 print(cv2.__version__)
+
 
 # File paths
 USERS_FILE = "users.csv"
@@ -16,9 +17,6 @@ SIGN_DATA_FILE = "sign_language_data.csv"
 
 # Base URL for GitHub raw files
 BASE_URL = "https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/"
-
-# Path for Keras model files
-MODEL_DIRECTORY = "keraspt1"  # Update this with your actual directory
 
 # Sign language data for training
 SIGN_LANGUAGE_DATA = {
@@ -100,44 +98,17 @@ def load_progress_data():
     except FileNotFoundError:
         return pd.DataFrame(columns=["username", "phrase"])
 
-# Load Keras model(s) for sign detection
-def load_sign_detection_model(model_directory=MODEL_DIRECTORY):
-    models = []
-    for i in range(1, 101):
-        model_path = os.path.join(model_directory, f"AisyahSignX{i:03d}.keras")
-        if os.path.exists(model_path):
-            model = load_model(model_path)
-            models.append(model)
-            print(f"Model loaded from {model_path}")
-        else:
-            print(f"Model file {model_path} not found.")
-    return models
-
-# Example of using models in prediction (Placeholder)
-def predict_sign_with_model(models, image):
-    # You would pass the image through the models for prediction here
-    # This is a placeholder function
-    if models:
-        model = models[0]  # Just an example, you can choose any model from the list
-        # Your code to preprocess image and get predictions
-        # This is just a placeholder example
-        return "Hello"  # Placeholder output
-    else:
-        return None
-
-# Initialize the models once when the app starts
-models = load_sign_detection_model()
-
 # Login system
 def login():
     st.title("SignX: Next-Gen Technology for Deaf Communications")
 
+    
     users_data = load_user_data()
-
+    
     st.subheader("Login")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
-
+    
     hashed_password = hash_password(password)
 
     if st.button("Login"):
@@ -197,33 +168,96 @@ def asl_alphabet_training():
         if st.button(f"Mark {letter} as learned"):
             track_progress(st.session_state['username'], letter)
 
-# Progress tracking
+# Performance tracking
 def track_progress(username, phrase):
     progress_data = load_progress_data()
-    if not progress_data[progress_data["username"] == username].empty:
-        progress_data.loc[progress_data["username"] == username, "phrase"] = phrase
-    else:
-        new_progress = pd.DataFrame([[username, phrase]], columns=["username", "phrase"])
-        progress_data = pd.concat([progress_data, new_progress], ignore_index=True)
+    new_entry = pd.DataFrame([[username, phrase]], columns=["username", "phrase"])
+    progress_data = pd.concat([progress_data, new_entry], ignore_index=True)
     save_progress_data(progress_data)
+    st.success(f"'{phrase}' marked as learned!")
 
-# Main app logic
-def app():
-    if 'logged_in' not in st.session_state or not st.session_state['logged_in']:
-        login()
+# Display user progress
+def show_progress(username):
+    st.subheader("Your Learning Progress")
+    progress_data = load_progress_data()
+    user_progress = progress_data[progress_data['username'] == username]
+    if user_progress.empty:
+        st.write("No progress yet.")
     else:
-        st.sidebar.title("Welcome!")
-        st.sidebar.text(f"Logged in as {st.session_state['username']}")
+        st.table(user_progress)
 
-        task = st.sidebar.radio("Choose a task", ["Training", "Learn Alphabet", "Logout"])
-        if task == "Training":
+# Camera feature for sign detection
+def sign_detection():
+    st.subheader("Sign Detection Camera")
+    st.write("Point your camera to detect ASL signs.")
+    
+    camera_input = st.camera_input("Capture Image of your Sign")
+
+    if camera_input is not None:
+        image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
+
+        # Placeholder for model predictions
+        # You can integrate a machine learning model here for sign recognition
+        # For this example, let's assume the model recognized "Hello"
+        detected_sign = "Hello"  # Placeholder for detected sign
+
+        st.image(image, caption="Captured Sign", use_column_width=True)
+
+        # Simulate progress tracking for the recognized sign
+        if detected_sign:
+            st.write(f"Detected sign: {detected_sign}")
+            if st.button(f"Mark '{detected_sign}' as learned"):
+                track_progress(st.session_state['username'], detected_sign)
+                st.success(f"'{detected_sign}' marked as learned!")
+
+    else:
+        st.error("No image captured yet")
+
+# Feedback and suggestion system
+def feedback_system():
+    st.subheader("Feedback and Suggestions")
+    feedback = st.text_area("Your feedback:")
+    if st.button("Submit Feedback"):
+        if feedback:
+            st.success("Thank you for your feedback!")
+            # Here you can save feedback to a database or file for review
+        else:
+            st.error("Please provide feedback before submitting.")
+
+# Main function
+def main():
+    st.sidebar.title("SignX Menu")
+    menu = ["Home", "Login", "Sign Up", "Training", "ASL Alphabet", "Progress", "Sign Detection", "Feedback"]
+    choice = st.sidebar.selectbox("Select an option", menu)
+
+    if choice == "Home":
+        st.title("Welcome to SignX - Learn ASL Easily!")
+    elif choice == "Login":
+        login()
+    elif choice == "Sign Up":
+        sign_up()
+    elif choice == "Training":
+        if "logged_in" in st.session_state:
             training()
-        elif task == "Learn Alphabet":
+        else:
+            st.warning("Please log in first.")
+    elif choice == "ASL Alphabet":
+        if "logged_in" in st.session_state:
             asl_alphabet_training()
-        elif task == "Logout":
-            st.session_state['logged_in'] = False
-            st.session_state['username'] = ""
-            st.success("You have logged out!")
+        else:
+            st.warning("Please log in first.")
+    elif choice == "Progress":
+        if "logged_in" in st.session_state:
+            show_progress(st.session_state['username'])
+        else:
+            st.warning("Please log in first.")
+    elif choice == "Sign Detection":
+        if "logged_in" in st.session_state:
+            sign_detection()
+        else:
+            st.warning("Please log in first.")
+    elif choice == "Feedback":
+        feedback_system()
 
 if __name__ == "__main__":
-    app()
+    main()
