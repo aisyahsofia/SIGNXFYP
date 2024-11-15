@@ -180,72 +180,68 @@ def load_progress_data():
     try:
         return pd.read_csv(PROGRESS_FILE)
     except FileNotFoundError:
-        return pd.DataFrame(columns=["username", "sign", "attempts", "correct"])
+        return pd.DataFrame(columns=["username", "progress"])
 
-# User authentication function
-def authenticate_user(username, password):
-    users_data = load_user_data()
-    user_data = users_data[users_data["username"] == username]
-    if not user_data.empty:
-        stored_hash = user_data.iloc[0]["password"]
-        if stored_hash == hash_password(password):
-            return True
-    return False
-
-# Signup function
-def signup_user(username, password):
-    users_data = load_user_data()
-    if username not in users_data["username"].values:
-        users_data = users_data.append({"username": username, "password": hash_password(password)}, ignore_index=True)
-        save_user_data(users_data)
-        return True
-    return False
-
-# UI and app flow logic
-def show_homepage():
-    st.title("SignX: Sign Language App")
-    st.sidebar.header("Navigation")
-    app_mode = st.sidebar.selectbox("Choose a page", ["Home", "Train", "Recognize", "Login", "Signup"])
-
-    if app_mode == "Home":
-        st.subheader("Welcome to SignX!")
-        st.write("Learn sign language, train, and test your skills.")
+# Main app function
+def app():
+    st.title("Sign Language Recognition")
     
-    elif app_mode == "Train":
-        st.subheader("ASL Training")
-        sign_choice = st.selectbox("Choose a sign", list(ASL_ALPHABET.keys()))
-        video_url = ASL_ALPHABET.get(sign_choice)
-        st.video(video_url)
+    menu = ["Home", "Sign Language", "Progress", "Login", "Register"]
+    choice = st.sidebar.selectbox("Select an option", menu)
+    
+    if choice == "Home":
+        st.subheader("Welcome to Sign Language Recognition")
+        st.write("This app will help you learn and practice American Sign Language (ASL).")
         
-    elif app_mode == "Recognize":
-        st.subheader("Live Sign Language Recognition")
-        img, predicted = predict_asl()
-        st.image(img)
-        st.write(f"Predicted: {predicted}")
-
-    elif app_mode == "Login":
+        img, predicted_char = predict_asl()
+        if img:
+            st.image(img, caption="Your Hand Gesture", use_column_width=True)
+            st.write(f"Predicted Gesture: {predicted_char}")
+    
+    elif choice == "Sign Language":
+        sign_choice = st.selectbox("Choose a sign language term", list(SIGN_LANGUAGE_DATA.keys()))
+        st.video(SIGN_LANGUAGE_DATA[sign_choice])
+        
+    elif choice == "Progress":
+        st.subheader("Your Progress")
+        username = st.text_input("Enter your username")
+        progress_data = load_progress_data()
+        
+        if username:
+            user_progress = progress_data[progress_data["username"] == username]
+            if not user_progress.empty:
+                st.write(f"Your progress: {user_progress['progress'].iloc[0]}")
+            else:
+                st.write("No progress data found for this user.")
+    
+    elif choice == "Login":
         st.subheader("Login")
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
-
+        
         if st.button("Login"):
-            if authenticate_user(username, password):
-                st.success("Logged in successfully!")
+            users_data = load_user_data()
+            hashed_password = hash_password(password)
+            
+            user = users_data[users_data["username"] == username]
+            if not user.empty and user["password"].iloc[0] == hashed_password:
+                st.success("Login successful")
             else:
-                st.error("Invalid username or password")
-
-    elif app_mode == "Signup":
-        st.subheader("Signup")
-        username = st.text_input("Choose a Username")
-        password = st.text_input("Choose a Password", type="password")
-
-        if st.button("Signup"):
-            if signup_user(username, password):
-                st.success("Signup successful!")
+                st.error("Invalid credentials")
+    
+    elif choice == "Register":
+        st.subheader("Register")
+        new_username = st.text_input("Choose a username")
+        new_password = st.text_input("Choose a password", type="password")
+        
+        if st.button("Register"):
+            users_data = load_user_data()
+            
+            if new_username in users_data["username"].values:
+                st.error("Username already exists.")
             else:
-                st.error("Username already taken")
-
-
-# Run the Streamlit app
-if __name__ == "__main__":
-    show_homepage()
+                hashed_password = hash_password(new_password)
+                new_user = pd.DataFrame({"username": [new_username], "password": [hashed_password]})
+                users_data = pd.concat([users_data, new_user], ignore_index=True)
+                save_user_data(users_data)
+                st.success("Registration successful")
