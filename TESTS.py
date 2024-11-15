@@ -5,7 +5,8 @@ import random
 import cv2
 import numpy as np
 import os
-
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing.image import img_to_array
 
 print(cv2.__version__)
 
@@ -72,6 +73,24 @@ ASL_ALPHABET = {
     'Z': f"{BASE_URL}Z%20ASL.mp4"
 }
 
+# Loop through model files from AisyahSignX01.h5 to AisyahSignX100.h5
+for i in range(1, 101):
+    # Format the model number to match the filename (01, 02, ..., 100)
+    model_filename = f'AisyahSignX{i:02d}.h5'  # Pads the number with leading zeroes
+    
+    # Construct the full path to the model file
+    model_path = f'C:/Users/puter/Downloads/final/data/keraspt1/{model_filename}'
+    
+    try:
+        # Load the model
+        model = load_model(model_path)
+        
+        # Optionally, print out the model summary
+        print(f"Model {model_filename} loaded successfully.")
+        model.summary()  # Print the model architecture summary
+    except Exception as e:
+        print(f"Failed to load model {model_filename}: {e}")
+        
 # Hashing function for passwords
 def hash_password(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
@@ -195,23 +214,32 @@ def sign_detection():
 
     if camera_input is not None:
         image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
+        
+        # Preprocess the image for the model (resize and scale the image)
+        img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        img = cv2.resize(img, (224, 224))  # Assuming your model accepts 224x224 images
+        img = img_to_array(img)
+        img = np.expand_dims(img, axis=0)
+        img = img / 255.0  # Normalizing if needed
 
-        # Placeholder for model predictions
-        # You can integrate a machine learning model here for sign recognition
-        # For this example, let's assume the model recognized "Hello"
-        detected_sign = "Hello"  # Placeholder for detected sign
+        # Predict using the model
+        predictions = model.predict(img)
+        predicted_class = np.argmax(predictions, axis=1)[0]
 
+        # Map the prediction to the ASL alphabet
+        asl_letters = list(ASL_ALPHABET.keys())
+        detected_sign = asl_letters[predicted_class]
+
+        # Display the result
         st.image(image, caption="Captured Sign", use_column_width=True)
+        st.write(f"Detected sign: {detected_sign}")
 
         # Simulate progress tracking for the recognized sign
         if detected_sign:
-            st.write(f"Detected sign: {detected_sign}")
             if st.button(f"Mark '{detected_sign}' as learned"):
                 track_progress(st.session_state['username'], detected_sign)
                 st.success(f"'{detected_sign}' marked as learned!")
 
-    else:
-        st.error("No image captured yet")
 
 # Feedback and suggestion system
 def feedback_system():
