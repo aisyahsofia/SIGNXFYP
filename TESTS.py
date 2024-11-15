@@ -270,9 +270,6 @@ def quiz():
 def feedback():
     st.subheader("Feedback")
     
-    # Rating input (1-5 scale)
-    rating = st.radio("Please rate your experience:", [1, 2, 3, 4, 5], index=2)  # Default to 3 (neutral)
-    
     # Feedback text input
     feedback_text = st.text_area("Please provide your feedback or suggestions:")
     
@@ -282,6 +279,10 @@ def feedback():
             # You can add logic here to save the feedback with the rating, e.g., saving to a CSV or a database.
         else:
             st.error("Please provide your feedback text.")
+
+     # Slider for rating (1-5 scale)
+     rating = st.slider("Please rate your experience:", 1, 5, 3)  # Default to 3 (neutral)
+    
 
 # Main app flow
 if 'logged_in' not in st.session_state:
