@@ -270,6 +270,9 @@ def quiz():
 def feedback():
     st.subheader("Feedback")
     
+    # Slider for rating (1-5 scale)
+    rating = st.slider("Please rate your experience:", 1, 5, 3)  # Default to 3 (neutral)
+    
     # Feedback text input
     feedback_text = st.text_area("Please provide your feedback or suggestions:")
     
@@ -279,9 +282,6 @@ def feedback():
             # You can add logic here to save the feedback with the rating, e.g., saving to a CSV or a database.
         else:
             st.error("Please provide your feedback text.")
-
-     # Slider for rating (1-5 scale)
-     rating = st.slider("Please rate your experience:", 1, 5, 3)  # Default to 3 (neutral)
     
 
 # Main app flow
