@@ -112,7 +112,7 @@ def load_feedback():
 def feedback():
     st.subheader("Feedback")
     feedback_text = st.text_area("Please provide your feedback or suggestions:")
-    rating = st.slider("Rate your experience", 1, 5)
+    rating = st.slider("Rate your experience", 1, 5, value=5, step=1, format="%d")
 
     if st.button("Submit Feedback"):
         if feedback_text:
