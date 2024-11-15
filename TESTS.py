@@ -8,7 +8,7 @@ import mediapipe as mp
 from tensorflow.keras.models import load_model
 
 # Load model for predictions (make sure the path to your model is correct)
-model = load_model('final/data/keraspt1')
+model = load_model(r"C:\\Users\\puter\\Downloads\\final\\data\\keraspt1")
 
 # Initialize MediaPipe for hand landmarks
 mp_hands = mp.solutions.hands
