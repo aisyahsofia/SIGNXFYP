@@ -7,10 +7,51 @@ import matplotlib.pyplot as plt
 
 # --- Helper Functions ---
 
-def authenticate_user(username, password):
-    # Simulating authentication with hardcoded credentials (replace with database in future)
-    valid_users = {"user1": "password1", "user2": "password2"}
-    return valid_users.get(username) == password
+# Login system
+def login():
+    st.title("SignX: Next-Gen Technology for Deaf Communications")
+
+    
+    users_data = load_user_data()
+    
+    st.subheader("Login")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+    
+    hashed_password = hash_password(password)
+
+    if st.button("Login"):
+        if username in users_data['username'].values:
+            stored_password = users_data[users_data['username'] == username]['password'].values[0]
+            if stored_password == hashed_password:
+                st.success(f"Welcome back, {username}!")
+                st.session_state['logged_in'] = True
+                st.session_state['username'] = username
+            else:
+                st.error("Invalid password")
+        else:
+            st.error("Username not found")
+
+# Sign-up system
+def sign_up():
+    st.subheader("Sign Up")
+    username = st.text_input("New Username")
+    password = st.text_input("New Password", type="password")
+    confirm_password = st.text_input("Confirm Password", type="password")
+
+    if st.button("Sign Up"):
+        if password == confirm_password:
+            users_data = load_user_data()
+            if username not in users_data['username'].values:
+                hashed_password = hash_password(password)
+                new_user = pd.DataFrame([[username, hashed_password]], columns=["username", "password"])
+                users_data = pd.concat([users_data, new_user], ignore_index=True)
+                save_user_data(users_data)
+                st.success("Account created successfully! Please log in.")
+            else:
+                st.error("Username already exists!")
+        else:
+            st.error("Passwords do not match")
 
 def save_feedback(feedback, rating):
     # Save feedback to a file or database (for simplicity, saving to a text file here)
