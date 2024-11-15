@@ -6,7 +6,9 @@ import cv2
 import numpy as np
 import os
 
+
 print(cv2.__version__)
+
 
 # File paths
 USERS_FILE = "users.csv"
@@ -96,188 +98,149 @@ def load_progress_data():
     except FileNotFoundError:
         return pd.DataFrame(columns=["username", "phrase"])
 
-# Sign Detection Camera Feature
+# Login system
+def login():
+    st.title("SignX: Next-Gen Technology for Deaf Communications")
+    
+    users_data = load_user_data()
+    
+    st.subheader("Login")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+    
+    hashed_password = hash_password(password)
+
+    if st.button("Login"):
+        if username in users_data['username'].values:
+            stored_password = users_data[users_data['username'] == username]['password'].values[0]
+            if stored_password == hashed_password:
+                st.success(f"Welcome back, {username}!")
+                st.session_state['logged_in'] = True
+                st.session_state['username'] = username
+            else:
+                st.error("Invalid password")
+        else:
+            st.error("Username not found")
+
+# Sign-up system
+def sign_up():
+    st.subheader("Sign Up")
+    username = st.text_input("New Username")
+    password = st.text_input("New Password", type="password")
+    confirm_password = st.text_input("Confirm Password", type="password")
+
+    if st.button("Sign Up"):
+        if password == confirm_password:
+            users_data = load_user_data()
+            if username not in users_data['username'].values:
+                hashed_password = hash_password(password)
+                new_user = pd.DataFrame([[username, hashed_password]], columns=["username", "password"])
+                users_data = pd.concat([users_data, new_user], ignore_index=True)
+                save_user_data(users_data)
+                st.success("Account created successfully! Please log in.")
+            else:
+                st.error("Username already exists!")
+        else:
+            st.error("Passwords do not match")
+
+# Training module with dropdown
+def training():
+    st.subheader("Sign Language Training")
+    selected_phrase = st.selectbox("Choose a phrase to learn", list(SIGN_LANGUAGE_DATA.keys()))
+    
+    if selected_phrase:
+        st.write(f"Phrase: {selected_phrase}")
+        video_url = SIGN_LANGUAGE_DATA[selected_phrase]
+        try:
+            st.video(video_url)
+        except Exception as e:
+            st.error(f"Error loading video: {str(e)}")
+        
+        if st.button(f"Mark {selected_phrase} as learned"):
+            track_progress(st.session_state['username'], selected_phrase)
+
+# ASL alphabet training with dropdown
+def asl_alphabet_training():
+    st.subheader("Learn the ASL Alphabet")
+    selected_letter = st.selectbox("Choose a letter to learn", list(ASL_ALPHABET.keys()))
+    
+    if selected_letter:
+        st.write(f"Letter: {selected_letter}")
+        video_url = ASL_ALPHABET[selected_letter]
+        try:
+            st.video(video_url)
+        except Exception as e:
+            st.error(f"Error loading video: {str(e)}")
+        
+        if st.button(f"Mark {selected_letter} as learned"):
+            track_progress(st.session_state['username'], selected_letter)
+
+# Performance tracking
+def track_progress(username, phrase):
+    progress_data = load_progress_data()
+    new_entry = pd.DataFrame([[username, phrase]], columns=["username", "phrase"])
+    progress_data = pd.concat([progress_data, new_entry], ignore_index=True)
+    save_progress_data(progress_data)
+    st.success(f"'{phrase}' marked as learned!")
+
+# Display user progress
+def show_progress(username):
+    st.subheader("Your Learning Progress")
+    progress_data = load_progress_data()
+    user_progress = progress_data[progress_data['username'] == username]
+    if user_progress.empty:
+        st.write("No progress yet.")
+    else:
+        st.table(user_progress)
+
+# Camera feature for sign detection
 def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
-
+    
     camera_input = st.camera_input("Capture Image of your Sign")
 
     if camera_input is not None:
         image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
 
-        # Display the captured image
-        st.image(image, caption="Captured Sign", use_column_width=True)
+        # Placeholder for model predictions
+        # You can integrate a machine learning model here for sign recognition
+        # For this example, let's assume the model recognized "Hello"
+        detected_sign = "Hello"  # Placeholder
+        
+        st.image(image, channels="BGR")
+        st.write(f"Detected sign: {detected_sign}")
 
-        # Placeholder: Image comparison for predefined signs
-        detected_sign = detect_sign(image)
+# Main function
+def main():
+    if 'logged_in' not in st.session_state:
+        st.session_state['logged_in'] = False
+    
+    if st.session_state['logged_in']:
+        st.sidebar.title("Navigation")
+        selection = st.sidebar.radio("Go to", ["Home", "Training", "ASL Alphabet", "Progress", "Sign Detection"])
 
-        # Display the detected sign
-        if detected_sign:
-            st.write(f"Detected sign: {detected_sign}")
-            if st.button(f"Mark '{detected_sign}' as learned"):
-                track_progress(st.session_state['username'], detected_sign)
-                st.success(f"'{detected_sign}' marked as learned!")
+        if selection == "Home":
+            st.title("Welcome to SignX!")
+            st.write("Learn American Sign Language with interactive features.")
+            st.write(f"Welcome back, {st.session_state['username']}!")
+        elif selection == "Training":
+            training()
+        elif selection == "ASL Alphabet":
+            asl_alphabet_training()
+        elif selection == "Progress":
+            show_progress(st.session_state['username'])
+        elif selection == "Sign Detection":
+            sign_detection()
+
     else:
-        st.error("No image captured yet.")
+        menu = ["Login", "Sign Up"]
+        choice = st.sidebar.radio("Select Option", menu)
 
-# Function to detect the sign from the captured image
-def detect_sign(image):
-    # Example: Match the captured image with predefined signs using basic feature matching
-    # For simplicity, this part assumes you have a set of predefined images for each sign
+        if choice == "Login":
+            login()
+        elif choice == "Sign Up":
+            sign_up()
 
-    # Predefined images (in this case, for "Hello" sign)
-    hello_sign_image = cv2.imread("path_to_hello_sign_image.jpg")  # Replace with actual image path
-    similarity = compare_images(image, hello_sign_image)
-
-    if similarity > 0.8:  # If similarity is high, mark it as "Hello"
-        return "Hello"
-    # Add more signs and matching conditions as needed
-    return None
-
-# Function to compare two images and return a similarity score
-def compare_images(image1, image2):
-    # Convert images to grayscale
-    gray1 = cv2.cvtColor(image1, cv2.COLOR_BGR2GRAY)
-    gray2 = cv2.cvtColor(image2, cv2.COLOR_BGR2GRAY)
-
-    # Use ORB feature matching
-    orb = cv2.ORB_create()
-    kp1, des1 = orb.detectAndCompute(gray1, None)
-    kp2, des2 = orb.detectAndCompute(gray2, None)
-
-    # Use brute force matcher
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-    matches = bf.match(des1, des2)
-
-    # Calculate similarity score (lower matches = better match)
-    similarity = len(matches) / max(len(kp1), len(kp2))  # Example similarity measure
-    return similarity
-
-# User Registration Page
-def register_user():
-    st.subheader("Register New User")
-    username = st.text_input("Enter a username")
-    password = st.text_input("Enter a password", type='password')
-    confirm_password = st.text_input("Confirm your password", type='password')
-
-    if st.button("Register"):
-        if password == confirm_password:
-            users_data = load_user_data()
-            if username not in users_data["username"].values:
-                hashed_password = hash_password(password)
-                new_user = pd.DataFrame({"username": [username], "password": [hashed_password]})
-                users_data = pd.concat([users_data, new_user], ignore_index=True)
-                save_user_data(users_data)
-                st.success(f"User '{username}' successfully registered!")
-            else:
-                st.error(f"Username '{username}' is already taken.")
-        else:
-            st.error("Passwords do not match.")
-
-# User Login Page
-def login_user():
-    st.subheader("Login")
-    username = st.text_input("Enter your username")
-    password = st.text_input("Enter your password", type='password')
-
-    if st.button("Login"):
-        users_data = load_user_data()
-        if username in users_data["username"].values:
-            stored_password = users_data[users_data["username"] == username]["password"].values[0]
-            if hash_password(password) == stored_password:
-                st.session_state["username"] = username
-                st.success(f"Welcome back, {username}!")
-                main_app()
-            else:
-                st.error("Incorrect password.")
-        else:
-            st.error("Username not found.")
-
-# Main App Page
-def main_app():
-    st.sidebar.subheader("Navigation")
-    option = st.sidebar.selectbox("Choose an action", ["Home", "Learn Signs", "Track Progress", "Sign Detection", "Logout"])
-
-    if option == "Home":
-        show_home_page()
-    elif option == "Learn Signs":
-        learn_signs()
-    elif option == "Track Progress":
-        track_progress_page()
-    elif option == "Sign Detection":
-        sign_detection()
-    elif option == "Logout":
-        st.session_state["username"] = None
-        st.success("You have logged out.")
-
-# Show Home Page
-def show_home_page():
-    st.title("Welcome to SignXTech App!")
-    st.write("This app will help you learn American Sign Language (ASL).")
-
-# Learn Signs
-def learn_signs():
-    st.subheader("Learn ASL Signs")
-    sign = st.selectbox("Select a sign to learn", list(SIGN_LANGUAGE_DATA.keys()))
-    if sign:
-        st.video(SIGN_LANGUAGE_DATA[sign])
-
-# Track Progress Page
-def track_progress_page():
-    st.subheader("Track Your Progress")
-    if "username" not in st.session_state:
-        st.error("Please login first.")
-        return
-
-    username = st.session_state["username"]
-    progress_data = load_progress_data()
-
-    # Show progress for the logged-in user
-    user_progress = progress_data[progress_data["username"] == username]
-    if user_progress.empty:
-        st.write("No progress yet.")
-    else:
-        st.write("Learned Signs:")
-        st.write(user_progress)
-
-# Function to track progress
-def track_progress(username, learned_sign):
-    progress_data = load_progress_data()
-
-    # Check if the user already has progress data
-    if username not in progress_data["username"].values:
-        new_progress = pd.DataFrame({"username": [username], "phrase": [learned_sign]})
-        progress_data = pd.concat([progress_data, new_progress], ignore_index=True)
-    else:
-        progress_data.loc[progress_data["username"] == username, "phrase"] = learned_sign
-
-    save_progress_data(progress_data)
-
-# Display progress
-def show_progress():
-    if "username" not in st.session_state:
-        st.error("Please login to view your progress.")
-        return
-
-    username = st.session_state["username"]
-    progress_data = load_progress_data()
-
-    user_progress = progress_data[progress_data["username"] == username]
-    if not user_progress.empty:
-        st.write(f"Progress for {username}:")
-        st.write(user_progress)
-    else:
-        st.write("No progress tracked yet.")
-
-# Streamlit App Entry Point
-def run_app():
-    if "username" in st.session_state:
-        main_app()
-    else:
-        login_user()
-
-# Run the app
-if __name__ == "__main__":
-    run_app()
-
+if __name__ == '__main__':
+    main()
