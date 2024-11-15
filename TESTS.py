@@ -1,38 +1,88 @@
 import streamlit as st
 import pandas as pd
-import time
 import hashlib
+import random
+import cv2
+import numpy as np
+import os
 
-# --- Helper Functions ---
+# File paths
+USERS_FILE = "users.csv"
+PROGRESS_FILE = "progress.csv"
+SIGN_DATA_FILE = "sign_language_data.csv"
 
-# Simulated function to load user data from a CSV (for simplicity, using a temporary in-memory store)
+# Base URL for GitHub raw files
+BASE_URL = "https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/"
+
+# ASL alphabet data (excluding J and Z)
+ASL_ALPHABET = {
+    'A': f"{BASE_URL}A%20ASL.mp4",
+    'B': f"{BASE_URL}B%20ASL.mp4",
+    'C': f"{BASE_URL}C%20ASL.mp4",
+    'D': f"{BASE_URL}D%20ASL.mp4",
+    'E': f"{BASE_URL}E%20ASL.mp4",
+    'F': f"{BASE_URL}F%20ASL.mp4",
+    'G': f"{BASE_URL}G%20ASL.mp4",
+    'H': f"{BASE_URL}H%20ASL.mp4",
+    'I': f"{BASE_URL}I%20ASL.mp4",
+    'K': f"{BASE_URL}K%20ASL.mp4",
+    'L': f"{BASE_URL}L%20ASL.mp4",
+    'M': f"{BASE_URL}M%20ASL.mp4",
+    'N': f"{BASE_URL}N%20ASL.mp4",
+    'O': f"{BASE_URL}O%20ASL.mp4",
+    'P': f"{BASE_URL}P%20ASL.mp4",
+    'Q': f"{BASE_URL}Q%20ASL.mp4",
+    'R': f"{BASE_URL}R%20ASL.mp4",
+    'S': f"{BASE_URL}S%20ASL.mp4",
+    'T': f"{BASE_URL}T%20ASL.mp4",
+    'U': f"{BASE_URL}U%20ASL.mp4",
+    'V': f"{BASE_URL}V%20ASL.mp4",
+    'W': f"{BASE_URL}W%20ASL.mp4",
+    'X': f"{BASE_URL}X%20ASL.mp4",
+    'Y': f"{BASE_URL}Y%20ASL.mp4",
+}
+
+# Hashing function for passwords
+def hash_password(password):
+    return hashlib.sha256(str.encode(password)).hexdigest()
+
+# Save user data to a CSV
+def save_user_data(users_data):
+    users_data.to_csv(USERS_FILE, index=False)
+
+# Load user data from a CSV
 def load_user_data():
     try:
-        return pd.read_csv('users.csv')
+        return pd.read_csv(USERS_FILE)
     except FileNotFoundError:
-        return pd.DataFrame(columns=['username', 'password'])
+        return pd.DataFrame(columns=["username", "password"])
 
-def save_user_data(users_data):
-    users_data.to_csv('users.csv', index=False)
+# Save progress data to CSV
+def save_progress_data(progress_data):
+    progress_data.to_csv(PROGRESS_FILE, index=False)
 
-# Password hashing function
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
+# Load progress data from CSV
+def load_progress_data():
+    try:
+        return pd.read_csv(PROGRESS_FILE)
+    except FileNotFoundError:
+        return pd.DataFrame(columns=["username", "phrase"])
 
 # Login system
 def login():
     st.title("SignX: Next-Gen Technology for Deaf Communications")
-
+    
     users_data = load_user_data()
-
+    
     st.subheader("Login")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
+    
+    hashed_password = hash_password(password)
 
     if st.button("Login"):
         if username in users_data['username'].values:
             stored_password = users_data[users_data['username'] == username]['password'].values[0]
-            hashed_password = hash_password(password)
             if stored_password == hashed_password:
                 st.success(f"Welcome back, {username}!")
                 st.session_state['logged_in'] = True
@@ -63,93 +113,98 @@ def sign_up():
         else:
             st.error("Passwords do not match")
 
-# --- Main App ---
-def main():
-    st.set_page_config(page_title="SignXTech - Learn ASL", page_icon=":guardsman:", layout="wide")
-    
-    # Sidebar Navigation
-    menu = ["Login", "Training", "ASL Alphabets", "Quiz", "Your Progress", "Sign Detection", "Feedback"]
-    choice = st.sidebar.selectbox("Navigate", menu)
+# Training module
+def training():
+    st.subheader("Sign Language Training")
+    for phrase, video in ASL_ALPHABET.items():
+        st.write(f"Letter: {phrase}")
+        try:
+            st.video(video)
+        except Exception as e:
+            st.error(f"Error loading video: {str(e)}")
+        if st.button(f"Mark {phrase} as learned"):
+            track_progress(st.session_state['username'], phrase)
 
-    # Login page (Basic Authentication Simulation)
-    if choice == "Login":
-        login()
+# Performance tracking
+def track_progress(username, phrase):
+    progress_data = load_progress_data()
+    new_entry = pd.DataFrame([[username, phrase]], columns=["username", "phrase"])
+    progress_data = pd.concat([progress_data, new_entry], ignore_index=True)
+    save_progress_data(progress_data)
+    st.success(f"'{phrase}' marked as learned!")
 
-    # If logged in, show content; otherwise, show login page
-    if st.session_state.get("logged_in", False):
-        if choice == "Training":
-            st.subheader("Training Modules")
-            st.write("Module 1: Introduction to ASL")
-            st.write("Module 2: Basic Signs")
-            st.write("Module 3: Intermediate Signs")
-            st.write("Module 4: Advanced Signs")
-            st.write("Modules can be expanded with videos or interactive lessons.")
-
-        elif choice == "ASL Alphabets":
-            st.write("ASL Alphabet Guide")
-            asl_alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
-            for letter in asl_alphabet:
-                st.write(f"Letter: {letter}")
-                # Placeholder images for each ASL letter
-                st.image(f"images/{letter}.jpg", caption=f"ASL for {letter}")
-
-        elif choice == "Quiz":
-            st.write("Test Your Knowledge with the ASL Quiz!")
-            question = "What is the ASL sign for 'Hello'?"
-            options = ["Wave", "Peace Sign", "Thumbs Up"]
-            answer = st.radio(question, options)
-            st.write(f"Your answer: {answer}")
-            if answer == "Wave":
-                st.success("Correct!")
-            else:
-                st.error("Incorrect, try again!")
-
-        elif choice == "Your Progress":
-            st.write("Your Learning Progress")
-            progress_data = {
-                'Module': ['Introduction to ASL', 'Basic Signs', 'Intermediate Signs', 'Advanced Signs'],
-                'Completion': ['100%', '75%', '50%', '25%']
-            }
-            df = pd.DataFrame(progress_data)
-            st.dataframe(df)
-
-        elif choice == "Sign Detection":
-            st.write("Sign Detection (using webcam):")
-            # Real-time sign detection (could integrate a model in the future)
-            cap = cv2.VideoCapture(0)
-            stframe = st.empty()
-
-            while True:
-                ret, frame = cap.read()
-                if not ret:
-                    st.error("Failed to capture image.")
-                    break
-
-                # Display webcam frame
-                stframe.image(frame, channels="BGR", use_column_width=True)
-
-                # Capture frame for further processing or sign recognition
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-
-            cap.release()
-
-        elif choice == "Feedback":
-            st.write("Provide Feedback on Your Learning Experience")
-            rating = st.slider("Rate your experience (1-10)", 1, 10)
-            feedback = st.text_area("Your Feedback", "Enter your feedback here...")
-            if st.button("Submit Feedback"):
-                with open('feedback.txt', 'a') as f:
-                    f.write(f"{time.ctime()} - Rating: {rating} - Feedback: {feedback}\n")
-                st.success("Thank you for your feedback!")
-
-        # Logout
-        if st.button("Log Out"):
-            st.session_state.logged_in = False
-            st.success("You have logged out successfully.")
+# Show progress
+def show_progress(username):
+    st.subheader("Your Learning Progress")
+    progress_data = load_progress_data()
+    user_progress = progress_data[progress_data['username'] == username]
+    if user_progress.empty:
+        st.write("No progress yet.")
     else:
-        st.write("Please log in to access the app's features.")
+        st.table(user_progress)
 
-# Run the app
+# Sign detection using webcam or file upload
+def sign_detection():
+    st.subheader("Sign Detection")
+
+    # Option to upload an image or video
+    uploaded_file = st.file_uploader("Upload Image or Video for Detection", type=["jpg", "png", "mp4"])
+
+    if uploaded_file:
+        if uploaded_file.type in ["jpg", "png"]:
+            # Handle image for sign detection
+            img = np.array(bytearray(uploaded_file.read()), dtype=np.uint8)
+            img = cv2.imdecode(img, 1)
+            detected_sign = detect_sign_in_image(img)
+            st.image(img, caption="Uploaded Image", use_column_width=True)
+            st.write(f"Detected Sign: {detected_sign}")
+        elif uploaded_file.type == "mp4":
+            # Handle video for sign detection
+            video = uploaded_file.read()
+            detected_sign = detect_sign_in_video(video)
+            st.video(uploaded_file)
+            st.write(f"Detected Sign: {detected_sign}")
+
+# Mock function for detecting signs (only A to Y)
+def detect_sign_in_image(image):
+    # This function should be linked to an actual sign detection model
+    # Simulating detection logic here by returning a random letter from A to Y
+    detected_letter = random.choice(list(ASL_ALPHABET.keys()))
+    return detected_letter
+
+def detect_sign_in_video(video):
+    # Simulating detection logic here for video (currently just returns a random letter)
+    detected_letter = random.choice(list(ASL_ALPHABET.keys()))
+    return detected_letter
+
+# Main app layout
+def main():
+    st.sidebar.title("SignX App Menu")
+    menu = ["Home", "Login", "Sign Up", "Training", "Progress", "Sign Detection"]
+    choice = st.sidebar.radio("Select an option", menu)
+
+    if choice == "Home":
+        st.title("Welcome to SignX: Learn American Sign Language (ASL)")
+        st.write("The app that helps you learn and communicate in ASL.")
+    elif choice == "Login":
+        login()
+    elif choice == "Sign Up":
+        sign_up()
+    elif choice == "Training":
+        if 'logged_in' in st.session_state:
+            training()
+        else:
+            st.warning("You must be logged in to access this section.")
+    elif choice == "Progress":
+        if 'logged_in' in st.session_state:
+            show_progress(st.session_state['username'])
+        else:
+            st.warning("You must be logged in to access this section.")
+    elif choice == "Sign Detection":
+        if 'logged_in' in st.session_state:
+            sign_detection()
+        else:
+            st.warning("You must be logged in to access this section.")
+
 if __name__ == "__main__":
     main()
