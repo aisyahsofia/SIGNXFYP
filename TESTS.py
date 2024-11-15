@@ -3,14 +3,15 @@ import mediapipe as mp
 import numpy as np
 from tensorflow.keras.models import load_model
 
-# Set the path to where your model is located
-model_path = r'C:\Users\puter\Downloads\final\data\keraspt1'
+# Allow the user to upload a model file
+model_file = st.file_uploader("Upload your Keras model file", type=["h5"])
 
-# Check if the file exists
-if os.path.exists(model_path):
-    print("Model file found.")
+if model_file is not None:
+    # Load the model dynamically
+    model = load_model(io.BytesIO(model_file.read()))
+    st.write("Model loaded successfully!")
 else:
-    print("Model file not found.")
+    st.write("Please upload a model file.")
 
 # Initialize video capture (change 0 if needed)
 cap = cv2.VideoCapture(0)
