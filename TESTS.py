@@ -21,10 +21,7 @@ BASE_URL = "https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/"
 # Sign language data for training
 SIGN_LANGUAGE_DATA = {
     "Hello": f"{BASE_URL}HELLO%20ASL.mp4",
-    "Good Morning": f"{BASE_URL}GOODMORNING%20ASL.mp4",
-    "Good Afternoon": f"{BASE_URL}GOODAFTERNOON%20ASL.mp4",
-    "Good Evening": f"{BASE_URL}GOODEVENING%20ASL.mp4",
-    "Good Night": f"{BASE_URL}GOODNIGHT%20ASL.mp4",
+    "Thank You": f"{BASE_URL}THANKYOU.mp4",
     "Sorry": f"{BASE_URL}SORRY%20ASL.mp4",
     "Please": f"{BASE_URL}PLEASE%20ASL.mp4",
     "Yes": f"{BASE_URL}YES%20ASL.mp4",
@@ -38,8 +35,11 @@ SIGN_LANGUAGE_DATA = {
     "Help me": f"{BASE_URL}HELPME%20ASL.mp4",
     "I Love You": f"{BASE_URL}ILOVEYOU%20ASL.mp4",
     "See You Later": f"{BASE_URL}SEEYOULATER%20ASL.mp4",
+    "Good Morning": f"{BASE_URL}GOODMORNING%20ASL.mp4",
+    "Good Afternoon": f"{BASE_URL}GOODAFTERNOON%20ASL.mp4",
+    "Good Evening": f"{BASE_URL}GOODEVENING%20ASL.mp4",
+    "Good Night": f"{BASE_URL}GOODNIGHT%20ASL.mp4",
     "Goodbye": f"{BASE_URL}GOODBYE%20ASL.mp4",
-    "Thank You": f"{BASE_URL}THANKYOU.mp4",
 }
 
 # Basic ASL alphabet
