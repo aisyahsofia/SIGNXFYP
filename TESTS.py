@@ -164,24 +164,46 @@ def sign_detection():
 # Quiz feature
 def quiz():
     st.subheader("Sign Language Quiz")
-    
+
+    # Initialize quiz type and question if not already set
+    if 'quiz_type' not in st.session_state:
+        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
+        
     if 'current_question' not in st.session_state:
-        st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+        if st.session_state['quiz_type'] == 'word':
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
+        else:
+            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
+            st.session_state['question_data'] = ASL_ALPHABET
 
+    # Display the question
     question = st.session_state['current_question']
-    
-    st.write(f"What does this sign mean?")
-    st.video(SIGN_LANGUAGE_DATA[question])
+    question_data = st.session_state['question_data']
+    st.write("What does this sign mean?")
+    st.video(question_data[question])
 
+    # Show the answer input and buttons
     answer = st.text_input("Your answer")
 
+    # Display result and next button only after answer is submitted
     if st.button("Submit"):
         if answer.strip().lower() == question.lower():
             st.success("Correct!")
             track_progress(st.session_state['username'], question)
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
         else:
             st.error(f"Incorrect! The correct answer was '{question}'.")
+
+    # "Next" button appears after submitting an answer
+    if st.button("Next"):
+        # Randomly select a new question type and question
+        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
+        if st.session_state['quiz_type'] == 'word':
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
+        else:
+            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
+            st.session_state['question_data'] = ASL_ALPHABET
 
 # Feedback system
 def feedback():
