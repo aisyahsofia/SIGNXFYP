@@ -5,9 +5,93 @@ import random
 import cv2
 import numpy as np
 import os
+import mediapipe as mp
+from tensorflow.keras.models import load_model
+from PIL import Image
 
+# Load the Keras model (adjust the path as needed)
+model = load_model(r"C:\xampp\htdocs\Project\GitSIgn\Compile\data\keras\compile.keras")
 
-print(cv2.__version__)
+# Initialize video capture
+cap = cv2.VideoCapture(0)
+
+# Set up MediaPipe hands
+mp_hands = mp.solutions.hands
+mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
+hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.5)
+
+# Define the ASL alphabet mapping (A to Y, excluding J and Z)
+asl_alphabet = {
+    0: 'A', 1: 'B', 2: 'C', 3: 'D', 4: 'E', 5: 'F', 6: 'G', 7: 'H', 8: 'I',
+    9: 'K', 10: 'L', 11: 'M', 12: 'N', 13: 'O', 14: 'P', 15: 'Q', 16: 'R',
+    17: 'S', 18: 'T', 19: 'U', 20: 'V', 21: 'W', 22: 'X', 23: 'Y'
+}
+
+# Function to predict ASL from webcam input
+def predict_asl():
+    data_aux = []
+    x_ = []
+    y_ = []
+
+    ret, frame = cap.read()
+    if not ret:
+        return None, None  # Exit if the frame is not captured
+
+    H, W, _ = frame.shape
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    results = hands.process(frame_rgb)
+
+    if results.multi_hand_landmarks:
+        for hand_landmarks in results.multi_hand_landmarks:
+            mp_drawing.draw_landmarks(
+                frame,
+                hand_landmarks,
+                mp_hands.HAND_CONNECTIONS,
+                mp_drawing_styles.get_default_hand_landmarks_style(),
+                mp_drawing_styles.get_default_hand_connections_style()
+            )
+
+            for i in range(len(hand_landmarks.landmark)):
+                x = hand_landmarks.landmark[i].x
+                y = hand_landmarks.landmark[i].y
+                x_.append(x)
+                y_.append(y)
+
+            for i in range(len(hand_landmarks.landmark)):
+                x = hand_landmarks.landmark[i].x
+                y = hand_landmarks.landmark[i].y
+                data_aux.append(x - min(x_))
+                data_aux.append(y - min(y_))
+
+        # Prepare data for prediction
+        data_aux = np.asarray(data_aux).reshape(1, -1)  # Reshape for the model input
+        prediction = model.predict(data_aux)
+
+        # Get the predicted class and its confidence
+        predicted_class_index = np.argmax(prediction, axis=1)[0]  # Index of the predicted class (e.g., 0 to 23)
+        predicted_probability = prediction[0][predicted_class_index]  # Probability of the predicted class
+
+        # Check if the probability is above the threshold (30%)
+        if predicted_probability >= 0.3:
+            predicted_character = asl_alphabet.get(predicted_class_index, 'Unknown')
+        else:
+            predicted_character = 'Unknown'  # Fallback for low confidence
+
+        # Draw the prediction on the frame
+        x1 = int(min(x_) * W) - 10
+        y1 = int(min(y_) * H) - 10
+        x2 = int(max(x_) * W) - 10
+        y2 = int(max(y_) * H) - 10
+
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (75, 75, 75), 4)
+        cv2.putText(frame, f'{predicted_character} ({predicted_probability * 100:.2f}%)', (x1, y1 - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.3, (75, 75, 75), 3, cv2.LINE_AA)
+
+    # Convert the frame to RGB and display it in Streamlit
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    img = Image.fromarray(frame_rgb)
+    return img, predicted_character
 
 
 # File paths
@@ -87,240 +171,81 @@ def load_user_data():
     except FileNotFoundError:
         return pd.DataFrame(columns=["username", "password"])
 
-# Save progress data to CSV
+# Save progress data
 def save_progress_data(progress_data):
     progress_data.to_csv(PROGRESS_FILE, index=False)
 
-# Load progress data from CSV
+# Load progress data
 def load_progress_data():
     try:
         return pd.read_csv(PROGRESS_FILE)
     except FileNotFoundError:
-        return pd.DataFrame(columns=["username", "phrase"])
+        return pd.DataFrame(columns=["username", "sign", "attempts", "correct"])
 
-# Login system
-def login():
-    st.title("SignX: Next-Gen Technology for Deaf Communications")
-
-    
+# User authentication function
+def authenticate_user(username, password):
     users_data = load_user_data()
+    user_data = users_data[users_data["username"] == username]
+    if not user_data.empty:
+        stored_hash = user_data.iloc[0]["password"]
+        if stored_hash == hash_password(password):
+            return True
+    return False
+
+# Signup function
+def signup_user(username, password):
+    users_data = load_user_data()
+    if username not in users_data["username"].values:
+        users_data = users_data.append({"username": username, "password": hash_password(password)}, ignore_index=True)
+        save_user_data(users_data)
+        return True
+    return False
+
+# UI and app flow logic
+def show_homepage():
+    st.title("SignX: Sign Language App")
+    st.sidebar.header("Navigation")
+    app_mode = st.sidebar.selectbox("Choose a page", ["Home", "Train", "Recognize", "Login", "Signup"])
+
+    if app_mode == "Home":
+        st.subheader("Welcome to SignX!")
+        st.write("Learn sign language, train, and test your skills.")
     
-    st.subheader("Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    
-    hashed_password = hash_password(password)
-
-    if st.button("Login"):
-        if username in users_data['username'].values:
-            stored_password = users_data[users_data['username'] == username]['password'].values[0]
-            if stored_password == hashed_password:
-                st.success(f"Welcome back, {username}!")
-                st.session_state['logged_in'] = True
-                st.session_state['username'] = username
-            else:
-                st.error("Invalid password")
-        else:
-            st.error("Username not found")
-
-# Sign-up system
-def sign_up():
-    st.subheader("Sign Up")
-    username = st.text_input("New Username")
-    password = st.text_input("New Password", type="password")
-    confirm_password = st.text_input("Confirm Password", type="password")
-
-    if st.button("Sign Up"):
-        if password == confirm_password:
-            users_data = load_user_data()
-            if username not in users_data['username'].values:
-                hashed_password = hash_password(password)
-                new_user = pd.DataFrame([[username, hashed_password]], columns=["username", "password"])
-                users_data = pd.concat([users_data, new_user], ignore_index=True)
-                save_user_data(users_data)
-                st.success("Account created successfully! Please log in.")
-            else:
-                st.error("Username already exists!")
-        else:
-            st.error("Passwords do not match")
-
-# Training module with dropdown
-def training():
-    st.subheader("Sign Language Training")
-    selected_phrase = st.selectbox("Choose a phrase to learn", list(SIGN_LANGUAGE_DATA.keys()))
-    
-    if selected_phrase:
-        st.write(f"Phrase: {selected_phrase}")
-        video_url = SIGN_LANGUAGE_DATA[selected_phrase]
-        try:
-            st.video(video_url)
-        except Exception as e:
-            st.error(f"Error loading video: {str(e)}")
+    elif app_mode == "Train":
+        st.subheader("ASL Training")
+        sign_choice = st.selectbox("Choose a sign", list(ASL_ALPHABET.keys()))
+        video_url = ASL_ALPHABET.get(sign_choice)
+        st.video(video_url)
         
-        if st.button(f"Mark {selected_phrase} as learned"):
-            track_progress(st.session_state['username'], selected_phrase)
+    elif app_mode == "Recognize":
+        st.subheader("Live Sign Language Recognition")
+        img, predicted = predict_asl()
+        st.image(img)
+        st.write(f"Predicted: {predicted}")
 
-# ASL alphabet training with dropdown
-def asl_alphabet_training():
-    st.subheader("Learn the ASL Alphabet")
-    selected_letter = st.selectbox("Choose a letter to learn", list(ASL_ALPHABET.keys()))
-    
-    if selected_letter:
-        st.write(f"Letter: {selected_letter}")
-        video_url = ASL_ALPHABET[selected_letter]
-        try:
-            st.video(video_url)
-        except Exception as e:
-            st.error(f"Error loading video: {str(e)}")
-        
-        if st.button(f"Mark {selected_letter} as learned"):
-            track_progress(st.session_state['username'], selected_letter)
+    elif app_mode == "Login":
+        st.subheader("Login")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
 
-# Performance tracking
-def track_progress(username, phrase):
-    progress_data = load_progress_data()
-    new_entry = pd.DataFrame([[username, phrase]], columns=["username", "phrase"])
-    progress_data = pd.concat([progress_data, new_entry], ignore_index=True)
-    save_progress_data(progress_data)
-    st.success(f"'{phrase}' marked as learned!")
+        if st.button("Login"):
+            if authenticate_user(username, password):
+                st.success("Logged in successfully!")
+            else:
+                st.error("Invalid username or password")
 
-# Display user progress
-def show_progress(username):
-    st.subheader("Your Learning Progress")
-    progress_data = load_progress_data()
-    user_progress = progress_data[progress_data['username'] == username]
-    if user_progress.empty:
-        st.write("No progress yet.")
-    else:
-        st.table(user_progress)
+    elif app_mode == "Signup":
+        st.subheader("Signup")
+        username = st.text_input("Choose a Username")
+        password = st.text_input("Choose a Password", type="password")
 
-# Camera feature for sign detection
-def sign_detection():
-    st.subheader("Sign Detection Camera")
-    st.write("Point your camera to detect ASL signs.")
-    
-    camera_input = st.camera_input("Capture Image of your Sign")
-
-    if camera_input is not None:
-        image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
-
-        # Placeholder for model predictions
-        # You can integrate a machine learning model here for sign recognition
-        # For this example, let's assume the model recognized "Hello"
-        detected_sign = "Hello"  # Placeholder for detected sign
-
-        st.image(image, caption="Captured Sign", use_column_width=True)
-
-        # Simulate progress tracking for the recognized sign
-        if detected_sign:
-            st.write(f"Detected sign: {detected_sign}")
-            if st.button(f"Mark '{detected_sign}' as learned"):
-                track_progress(st.session_state['username'], detected_sign)
-                st.success(f"'{detected_sign}' marked as learned!")
-
-    else:
-        st.error("No image captured yet.")
-
-# Quiz feature
-def quiz():
-    st.subheader("Sign Language Quiz")
-
-    # Initialize quiz type and question if not set
-    if 'quiz_type' not in st.session_state:
-        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
-
-    if 'current_question' not in st.session_state:
-        if st.session_state['quiz_type'] == 'word':
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
-        else:
-            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
-            st.session_state['question_data'] = ASL_ALPHABET
-
-    # Display current question and video
-    question = st.session_state['current_question']
-    question_data = st.session_state['question_data']
-    st.write("What does this sign mean?")
-    st.video(question_data[question])
-
-    # Display answer input and Submit button
-    answer = st.text_input("Your answer")
-
-    if 'submitted' not in st.session_state:
-        st.session_state['submitted'] = False
-
-    # Show feedback after Submit
-    if st.button("Submit") and not st.session_state['submitted']:
-        if answer.strip().lower() == question.lower():
-            st.success("Correct!")
-            track_progress(st.session_state['username'], question)
-        else:
-            st.error(f"Incorrect! The correct answer was '{question}'.")
-
-        st.session_state['submitted'] = True  # Set submitted to True after submission
-
-    # Show Next button after feedback is given
-    if st.session_state['submitted'] and st.button("Next"):
-        # Reset submitted state
-        st.session_state['submitted'] = False
-
-        # Select a new question and type
-        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
-        if st.session_state['quiz_type'] == 'word':
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
-        else:
-            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
-            st.session_state['question_data'] = ASL_ALPHABET
+        if st.button("Signup"):
+            if signup_user(username, password):
+                st.success("Signup successful!")
+            else:
+                st.error("Username already taken")
 
 
-# Feedback system
-def feedback():
-    st.subheader("Feedback")
-    
-    # Slider for rating (1-5 scale)
-    rating = st.slider("Please rate your experience:", 1, 5, 3)  # Default to 3 (neutral)
-    
-    # Feedback text input
-    feedback_text = st.text_area("Please provide your feedback or suggestions:")
-    
-    if st.button("Submit Feedback"):
-        if feedback_text:
-            st.success(f"Thank you for your feedback! You rated us {rating} out of 5.")
-            # You can add logic here to save the feedback with the rating, e.g., saving to a CSV or a database.
-        else:
-            st.error("Please provide your feedback text.")
-    
-
-# Main app flow
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-
-if not st.session_state['logged_in']:
-    st.sidebar.title("SignX: Next-Gen Technology for Deaf Communications")
-    login_option = st.sidebar.selectbox("Login or Sign Up", ["Login", "Sign Up"])
-
-    if login_option == "Login":
-        login()
-    else:
-        sign_up()
-else:
-    st.sidebar.title(f"Welcome, {st.session_state['username']}")
-    action = st.sidebar.selectbox("Action", ["Training", "ASL Alphabet", "Your Progress", "Quiz", "Sign Detection", "Feedback", "Logout"])
-
-    if action == "Training":
-        training()
-    elif action == "ASL Alphabet":
-        asl_alphabet_training()
-    elif action == "Your Progress":
-        show_progress(st.session_state['username'])
-    elif action == "Quiz":
-        quiz()
-    elif action == "Sign Detection":
-        sign_detection()
-    elif action == "Feedback":
-        feedback()
-    elif action == "Logout":
-        st.session_state['logged_in'] = False
-        del st.session_state['username']
-        st.write("You have been logged out.")
+# Run the Streamlit app
+if __name__ == "__main__":
+    show_homepage()
