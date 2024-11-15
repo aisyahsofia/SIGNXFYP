@@ -190,20 +190,19 @@ def show_progress(username):
 def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
-    
+
     camera_input = st.camera_input("Capture Image of your Sign")
 
     if camera_input is not None:
         image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
 
-        # Placeholder for model predictions
-        # You can integrate a machine learning model here for sign recognition
-        # For this example, let's assume the model recognized "Hello"
-        detected_sign = "Hello"  # Placeholder for detected sign
-
+        # Display the captured image
         st.image(image, caption="Captured Sign", use_column_width=True)
 
-        # Simulate progress tracking for the recognized sign
+        # Placeholder: Image comparison for predefined signs
+        detected_sign = detect_sign(image)
+
+        # Display the detected sign
         if detected_sign:
             st.write(f"Detected sign: {detected_sign}")
             if st.button(f"Mark '{detected_sign}' as learned"):
@@ -212,6 +211,40 @@ def sign_detection():
 
     else:
         st.error("No image captured yet.")
+
+# Function to detect the sign from the captured image
+def detect_sign(image):
+    # Example: Match the captured image with predefined signs using basic feature matching
+    # For simplicity, this part assumes you have a set of predefined images for each sign
+
+    # Predefined images (in this case, for "Hello" sign)
+    hello_sign_image = cv2.imread("path_to_hello_sign_image.jpg")  # Replace with actual image path
+    similarity = compare_images(image, hello_sign_image)
+
+    if similarity > 0.8:  # If similarity is high, mark it as "Hello"
+        return "Hello"
+    # Add more signs and matching conditions as needed
+    return None
+
+# Function to compare two images and return a similarity score
+def compare_images(image1, image2):
+    # Convert images to grayscale
+    gray1 = cv2.cvtColor(image1, cv2.COLOR_BGR2GRAY)
+    gray2 = cv2.cvtColor(image2, cv2.COLOR_BGR2GRAY)
+
+    # Use ORB feature matching
+    orb = cv2.ORB_create()
+    kp1, des1 = orb.detectAndCompute(gray1, None)
+    kp2, des2 = orb.detectAndCompute(gray2, None)
+
+    # Use brute force matcher
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    matches = bf.match(des1, des2)
+
+    # Calculate similarity score (lower matches = better match)
+    similarity = len(matches) / max(len(kp1), len(kp2))  # Example similarity measure
+    return similarity
+
 
 # Quiz feature
 def quiz():
