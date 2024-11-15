@@ -39,7 +39,7 @@ SIGN_LANGUAGE_DATA = {
     "I Love You": f"{BASE_URL}ILOVEYOU%20ASL.mp4",
     "See You Later": f"{BASE_URL}SEEYOULATER%20ASL.mp4",
     "Goodbye": f"{BASE_URL}GOODBYE%20ASL.mp4",
-    "Thank You": f"{BASE_URL}THANKYOU%20ASL.mp4",
+    "Thank You": f"{BASE_URL}THANKYOU.mp4",
 }
 
 # Basic ASL alphabet
