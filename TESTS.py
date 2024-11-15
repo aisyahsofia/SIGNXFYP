@@ -1,118 +1,104 @@
-import cv2
-import mediapipe as mp
 import numpy as np
-import os
-import json
-from tensorflow.keras.models import load_model
+import cv2
+import streamlit as st
+from tensorflow import keras
+from keras.models import model_from_json
+from keras.preprocessing.image import img_to_array
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 
-# Function to load a specific model based on its number
-def load_sign_language_model(model_number, model_folder):
-    if 1 <= model_number <= 100:
-        model_filename = f"AisyahSignX{model_number:02d}.keras"  # Format number with leading zeros
-        model_path = os.path.join(model_folder, model_filename)
+# Load model
+emotion_dict = {0: 'angry', 1: 'happy', 2: 'neutral', 3: 'sad', 4: 'surprise'}
+# Load JSON and create model
+json_file = open('emotion_model1.json', 'r')
+loaded_model_json = json_file.read()
+json_file.close()
+classifier = model_from_json(loaded_model_json)
+
+# Load weights into new model
+classifier.load_weights("emotion_model1.h5")
+
+# Load face cascade
+try:
+    face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+except Exception:
+    st.write("Error loading cascade classifiers")
+
+class VideoTransformer(VideoTransformerBase):
+    def transform(self, frame):
+        img = frame.to_ndarray(format="bgr24")
+
+        # Convert image to gray scale
+        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(
+            image=img_gray, scaleFactor=1.3, minNeighbors=5)
         
-        if os.path.exists(model_path):
-            model = load_model(model_path)
-            return model
-        else:
-            print(f"Model {model_filename} does not exist.")
-            return None
-    else:
-        print("Invalid model number. Please provide a number between 1 and 100.")
-        return None
+        for (x, y, w, h) in faces:
+            # Draw rectangle around face
+            cv2.rectangle(img=img, pt1=(x, y), pt2=(x + w, y + h), color=(255, 0, 0), thickness=2)
+            
+            # Get the region of interest for emotion prediction
+            roi_gray = img_gray[y:y + h, x:x + w]
+            roi_gray = cv2.resize(roi_gray, (48, 48), interpolation=cv2.INTER_AREA)
+            
+            if np.sum([roi_gray]) != 0:
+                roi = roi_gray.astype('float') / 255.0
+                roi = img_to_array(roi)
+                roi = np.expand_dims(roi, axis=0)
+                prediction = classifier.predict(roi)[0]
+                maxindex = int(np.argmax(prediction))
+                finalout = emotion_dict[maxindex]
+                output = str(finalout)
+            
+            label_position = (x, y)
+            cv2.putText(img, output, label_position, cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-# Define the folder where the models are stored
-model_folder = r"C:\xampp\htdocs\Project\GitSIgn\Compile\data\keras"
+        return img
 
-# Choose the model number you want to load
-model_number = 1  # Change this as needed (e.g., load AisyahSignX01.keras)
-model = load_sign_language_model(model_number, model_folder)
+def main():
+    # Face Emotion Analysis Application #
+    st.title("Real Time Face Emotion Detection")
+    activities = ["Home", "Webcam Face Detection", "About"]
+    choice = st.sidebar.selectbox("Select Activity", activities)
+    st.sidebar.markdown(
+        """ Developed by [Your Name]    
+            Email: your_email@example.com  
+            [LinkedIn](https://www.linkedin.com/in/your-profile)""")
+    
+    if choice == "Home":
+        html_temp_home1 = """<div style="background-color:#6D7B8D;padding:10px">
+                                            <h4 style="color:white;text-align:center;">
+                                            Face Emotion Detection using OpenCV, Custom CNN model, and Streamlit.</h4>
+                                            </div>
+                                            </br>"""
+        st.markdown(html_temp_home1, unsafe_allow_html=True)
+        st.write("""
+                 The application has two functionalities:
 
-if model is None:
-    print("Model could not be loaded.")
-    exit()
+                 1. Real-time face detection using webcam feed.
+                 2. Real-time face emotion recognition based on detected faces.
+                 """)
+    elif choice == "Webcam Face Detection":
+        st.header("Webcam Live Feed")
+        st.write("Click on start to use webcam and detect your face emotion")
+        webrtc_streamer(key="example", video_transformer_factory=VideoTransformer)
 
-# Load label dictionary (labels.json or from npz as per your structure)
-with open(r"C:\xampp\htdocs\Project\GitSIgn\Compile\data\labels\compile.json", 'r') as json_file:
-    label_dict = json.load(json_file)
+    elif choice == "About":
+        st.subheader("About this app")
+        html_temp_about1 = """<div style="background-color:#6D7B8D;padding:10px">
+                                    <h4 style="color:white;text-align:center;">
+                                    Real-time face emotion detection using OpenCV, Custom CNN model, and Streamlit.</h4>
+                                    </div>
+                                    </br>"""
+        st.markdown(html_temp_about1, unsafe_allow_html=True)
 
-# Initialize video capture
-cap = cv2.VideoCapture(0)
+        html_temp4 = """
+                             		<div style="background-color:#98AFC7;padding:10px">
+                             		<h4 style="color:white;text-align:center;">This Application was developed by [Your Name] using Streamlit Framework, OpenCV, TensorFlow, and Keras for demonstration purposes.</h4>
+                             		<h4 style="color:white;text-align:center;">Thanks for Visiting</h4>
+                             		</div>
+                             		<br></br>
+                             		<br></br>"""
+        st.markdown(html_temp4, unsafe_allow_html=True)
 
-# Set up MediaPipe hands
-mp_hands = mp.solutions.hands
-mp_drawing = mp.solutions.drawing_utils
-mp_drawing_styles = mp.solutions.drawing_styles
-
-hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.5)
-
-while True:
-    data_aux = []
-    x_ = []
-    y_ = []
-
-    ret, frame = cap.read()
-    if not ret:
-        break  # Exit if the frame is not captured
-
-    H, W, _ = frame.shape
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = hands.process(frame_rgb)
-
-    if results.multi_hand_landmarks:
-        for hand_landmarks in results.multi_hand_landmarks:
-            mp_drawing.draw_landmarks(
-                frame,
-                hand_landmarks,
-                mp_hands.HAND_CONNECTIONS,
-                mp_drawing_styles.get_default_hand_landmarks_style(),
-                mp_drawing_styles.get_default_hand_connections_style()
-            )
-
-            for i in range(len(hand_landmarks.landmark)):
-                x = hand_landmarks.landmark[i].x
-                y = hand_landmarks.landmark[i].y
-                x_.append(x)
-                y_.append(y)
-
-            for i in range(len(hand_landmarks.landmark)):
-                x = hand_landmarks.landmark[i].x
-                y = hand_landmarks.landmark[i].y
-                data_aux.append(x - min(x_))
-                data_aux.append(y - min(y_))
-
-        # Prepare data for prediction
-        data_aux = np.asarray(data_aux).reshape(1, -1)  # Reshape for the model input
-        prediction = model.predict(data_aux)
-
-        # Get the predicted class and its confidence
-        predicted_class_index = np.argmax(prediction, axis=1)[0]  # e.g. 0 or 1 until max class total, in this case 25
-        predicted_probability = prediction[0][predicted_class_index]  # Probability of the predicted class
-
-        print(f"Predicted class index: {predicted_class_index}, Confidence: {predicted_probability}")
-
-        # Check if the probability is above the threshold (30%)
-        if predicted_probability >= 0.3:
-            # Convert to string to use as a key in the dictionary
-            predicted_key = str(predicted_class_index)
-            predicted_character = label_dict.get(predicted_key, 'Unknown')  # Use get to avoid KeyError
-        else:
-            predicted_character = 'Unknown'  # Fallback for low confidence
-
-        # Draw the prediction on the frame
-        x1 = int(min(x_) * W) - 10
-        y1 = int(min(y_) * H) - 10
-        x2 = int(max(x_) * W) - 10
-        y2 = int(max(y_) * H) - 10
-
-        cv2.rectangle(frame, (x1, y1), (x2, y2), (75, 75, 75), 4)
-        cv2.putText(frame, f'{predicted_character} ({predicted_probability * 100:.2f}%)', (x1, y1 - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1.3, (75, 75, 75), 3, cv2.LINE_AA)
-
-    # Display the frame
-    cv2.imshow('frame', frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):  # Exit on 'q' key press
-        break
-
-cap.release()
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    main()
