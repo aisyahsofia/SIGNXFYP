@@ -217,10 +217,10 @@ def sign_detection():
 def quiz():
     st.subheader("Sign Language Quiz")
 
-    # Initialize quiz type and question if not already set
+    # Initialize quiz type and question if not set
     if 'quiz_type' not in st.session_state:
         st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
-        
+
     if 'current_question' not in st.session_state:
         if st.session_state['quiz_type'] == 'word':
             st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
@@ -229,26 +229,34 @@ def quiz():
             st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
             st.session_state['question_data'] = ASL_ALPHABET
 
-    # Display the question
+    # Display current question and video
     question = st.session_state['current_question']
     question_data = st.session_state['question_data']
     st.write("What does this sign mean?")
     st.video(question_data[question])
 
-    # Show the answer input and buttons
+    # Display answer input and Submit button
     answer = st.text_input("Your answer")
 
-    # Display result and next button only after answer is submitted
-    if st.button("Submit"):
+    if 'submitted' not in st.session_state:
+        st.session_state['submitted'] = False
+
+    # Show feedback after Submit
+    if st.button("Submit") and not st.session_state['submitted']:
         if answer.strip().lower() == question.lower():
             st.success("Correct!")
             track_progress(st.session_state['username'], question)
         else:
             st.error(f"Incorrect! The correct answer was '{question}'.")
 
-    # "Next" button appears after submitting an answer
-    if st.button("Next"):
-        # Randomly select a new question type and question
+        st.session_state['submitted'] = True  # Set submitted to True after submission
+
+    # Show Next button after feedback is given
+    if st.session_state['submitted'] and st.button("Next"):
+        # Reset submitted state
+        st.session_state['submitted'] = False
+
+        # Select a new question and type
         st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
         if st.session_state['quiz_type'] == 'word':
             st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
