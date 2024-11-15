@@ -301,7 +301,62 @@ else:
     elif action == "Sign Detection":
         sign_detection()
     elif action == "Feedback":
-        feedback()
+        feedback() # Feedback storage file
+FEEDBACK_FILE = 'feedback.csv'
+
+# Email notification settings
+SMTP_SERVER = 'smtp.gmail.com'
+SMTP_PORT = 587
+SENDER_EMAIL = 'your_email@gmail.com'  # Replace with your email
+SENDER_PASSWORD = 'your_password'      # Replace with your email app password
+RECIPIENT_EMAIL = 'recipient_email@gmail.com'  # Replace with recipient email
+
+def store_feedback(name, email, feedback_text):
+    """Stores feedback in a CSV file with a timestamp."""
+    feedback_data = [name, email, feedback_text, datetime.now().isoformat()]
+    
+    # Write feedback to a CSV file
+    with open(FEEDBACK_FILE, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(feedback_data)
+    print("Feedback stored successfully.")
+
+def send_email_notification(name, email, feedback_text):
+    """Sends an email notification for new feedback."""
+    try:
+        # Set up the email content
+        message = MIMEMultipart()
+        message['From'] = SENDER_EMAIL
+        message['To'] = RECIPIENT_EMAIL
+        message['Subject'] = f"New Feedback from {name}"
+        
+        body = f"Name: {name}\nEmail: {email}\nFeedback: {feedback_text}\n\nTimestamp: {datetime.now()}"
+        message.attach(MIMEText(body, 'plain'))
+        
+        # Connect to SMTP server and send email
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()  # Secure the connection
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.send_message(message)
+        server.quit()
+        
+        print("Email notification sent successfully.")
+    except Exception as e:
+        print(f"Failed to send email notification: {e}")
+
+def handle_feedback(name, email, feedback_text):
+    """Handles the process of storing feedback and sending email notifications."""
+    store_feedback(name, email, feedback_text)
+    send_email_notification(name, email, feedback_text)
+
+# Example feedback data to test
+name = "John Doe"
+email = "john.doe@example.com"
+feedback_text = "I love the app, but I would like to see more features!"
+
+# Call the function to handle feedback
+handle_feedback(name, email, feedback_text)
+
     elif action == "Logout":
         st.session_state['logged_in'] = False
         del st.session_state['username']
