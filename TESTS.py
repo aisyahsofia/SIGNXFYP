@@ -13,7 +13,7 @@ from pathlib import Path
 # Paths for model and data
 DATASET_PATH = r"C:\Users\puter\Downloads\final\data\static\images"
 ANNOTATIONS_PATH = r"C:\Users\puter\Downloads\final\data\labels\compile.json"
-MODEL_PATH = r"C:\Users\puter\Downloads\final\data\keraspt1"
+MODEL_PATH = r"C:\Users\puter\Downloads\final\data\keraspt1"  # Updated model path
 OUTPUT_PATH = r"C:\Users\puter\Downloads\final"
 
 # File paths for user and progress data
