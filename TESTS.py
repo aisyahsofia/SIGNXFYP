@@ -1,14 +1,38 @@
 import cv2
 import mediapipe as mp
 import numpy as np
+import os
+import json
 from tensorflow.keras.models import load_model
 
-# Load the Keras model from your GitHub repository
-model_path = r"C:\xampp\htdocs\Project\GitSIgn\Compile\data\keras\AisyahSignX01.keras"  # Adjust the path to your model
-model = load_model(model_path)
+# Function to load a specific model based on its number
+def load_sign_language_model(model_number, model_folder):
+    if 1 <= model_number <= 100:
+        model_filename = f"AisyahSignX{model_number:02d}.keras"  # Format number with leading zeros
+        model_path = os.path.join(model_folder, model_filename)
+        
+        if os.path.exists(model_path):
+            model = load_model(model_path)
+            return model
+        else:
+            print(f"Model {model_filename} does not exist.")
+            return None
+    else:
+        print("Invalid model number. Please provide a number between 1 and 100.")
+        return None
+
+# Define the folder where the models are stored
+model_folder = r"C:\xampp\htdocs\Project\GitSIgn\Compile\data\keras"
+
+# Choose the model number you want to load
+model_number = 1  # Change this as needed (e.g., load AisyahSignX01.keras)
+model = load_sign_language_model(model_number, model_folder)
+
+if model is None:
+    print("Model could not be loaded.")
+    exit()
 
 # Load label dictionary (labels.json or from npz as per your structure)
-import json
 with open(r"C:\xampp\htdocs\Project\GitSIgn\Compile\data\labels\compile.json", 'r') as json_file:
     label_dict = json.load(json_file)
 
