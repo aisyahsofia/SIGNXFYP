@@ -3,8 +3,12 @@ import mediapipe as mp
 import numpy as np
 from tensorflow.keras.models import load_model
 
-# Load the model (only once outside the loop)
-model = load_model('data/keraspt1')
+# File uploader widget
+uploaded_model = st.file_uploader("Upload your Keras model", type=['h5', 'keras'])
+
+if uploaded_model is not None:
+    model = load_model(uploaded_model)
+    st.success("Model loaded successfully!")
 
 # Initialize video capture (change 0 if needed)
 cap = cv2.VideoCapture(0)
