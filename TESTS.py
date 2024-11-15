@@ -9,11 +9,10 @@ import hashlib
 import random
 from pathlib import Path
 
-
 # Paths for model and data
 DATASET_PATH = r"C:\Users\puter\Downloads\final\data\static\images"
 ANNOTATIONS_PATH = r"C:\Users\puter\Downloads\final\data\labels\compile.json"
-MODEL_PATH = r"C:\Users\puter\Downloads\final\data\keraspt1"  # Updated model path
+MODEL_PATH = r"C:\Users\puter\Downloads\final\data\keraspt100"  # Updated model path
 OUTPUT_PATH = r"C:\Users\puter\Downloads\final"
 
 # File paths for user and progress data
@@ -78,14 +77,21 @@ ASL_ALPHABET = {
     'Z': f"{BASE_URL}Z%20ASL.mp4"
 }
 
-# Load the trained model
-def load_model(model_path):
-    try:
-        model = tf.keras.models.load_model(model_path)
-        print(f"Model loaded successfully from {model_path}")
-        return model
-    except Exception as e:
-        print(f"Error loading model: {e}")
+# Function to load model by name/index (01 to 100)
+def load_model_by_index(model_index):
+    model_filename = f"AisyahSignX{model_index:02d}.h5"  # Format index as two digits
+    model_path = os.path.join(MODEL_PATH, model_filename)
+    
+    if os.path.exists(model_path):
+        try:
+            model = tf.keras.models.load_model(model_path)
+            print(f"Model {model_filename} loaded successfully!")
+            return model
+        except Exception as e:
+            print(f"Error loading model {model_filename}: {e}")
+            return None
+    else:
+        print(f"Model file {model_filename} not found!")
         return None
 
 # Load annotations
@@ -173,31 +179,101 @@ def track_progress(username, phrase):
     save_progress_data(progress_data)
     st.success(f"'{phrase}' marked as learned!")
 
-# Main function
-def main():
-    model = load_model(MODEL_PATH)
-    annotations = load_annotations(ANNOTATIONS_PATH)
+# Login function
+def login():
+    st.subheader("Login")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
     
-    if model and annotations:
-        st.title("SignX: Sign Language Learning App")
+    if st.button("Login"):
+        users_data = load_user_data()
+        user_row = users_data[users_data['username'] == username]
         
-        # Login or sign-up system
-        login()
+        if len(user_row) > 0:
+            if hash_password(password) == user_row['password'].values[0]:
+                st.session_state['username'] = username
+                st.success(f"Logged in as {username}")
+                return True
+            else:
+                st.error("Incorrect password!")
+        else:
+            st.error("Username not found!")
+    
+    return False
 
-        # Choose features
-        menu = ["Sign Detection", "Training", "Alphabet Training"]
-        choice = st.sidebar.selectbox("Choose a feature", menu)
+# Register function
+def register():
+    st.subheader("Register")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+    confirm_password = st.text_input("Confirm Password", type="password")
+    
+    if st.button("Register"):
+        if password == confirm_password:
+            users_data = load_user_data()
+            if username in users_data['username'].values:
+                st.error("Username already exists!")
+            else:
+                new_user = pd.DataFrame([[username, hash_password(password)]], columns=["username", "password"])
+                users_data = pd.concat([users_data, new_user], ignore_index=True)
+                save_user_data(users_data)
+                st.success("Registration successful!")
+        else:
+            st.error("Passwords do not match!")
 
-        if choice == "Sign Detection":
-            sign_detection(model, annotations)
-        elif choice == "Training":
-            training()
-        elif choice == "Alphabet Training":
-            asl_alphabet_training()
-        
+# Main app UI
+def main():
+    st.title("Sign Language App")
+    
+    # Login or Register
+    if 'username' not in st.session_state:
+        choice = st.sidebar.selectbox("Login / Register", ["Login", "Register"])
+
+        if choice == "Login":
+            if login():
+                st.sidebar.success(f"Welcome {st.session_state['username']}!")
+        elif choice == "Register":
+            register()
+
     else:
-        st.error("Failed to load model or annotations. Please check paths.")
+        # Logged in user dashboard
+        menu = ["Sign Detection", "Training", "ASL Alphabet", "Quiz", "Your Progress", "Feedback", "Logout"]
+        choice = st.sidebar.selectbox("Menu", menu)
+        
+        if choice == "Sign Detection":
+            sign_detection(load_model_by_index(1), load_annotations(ANNOTATIONS_PATH))
+        
+        elif choice == "Training":
+            st.subheader("Training")
+            st.write("Here you can learn ASL signs with the help of videos.")
+            for phrase, video_url in SIGN_LANGUAGE_DATA.items():
+                st.video(video_url)
 
-# Run the app
+        elif choice == "ASL Alphabet":
+            st.subheader("Learn ASL Alphabet")
+            for letter, video_url in ASL_ALPHABET.items():
+                st.write(f"{letter}: {video_url}")
+
+        elif choice == "Quiz":
+            st.subheader("ASL Quiz")
+            # Here you can build your quiz functionality
+
+        elif choice == "Your Progress":
+            st.subheader("Your Progress")
+            if 'username' in st.session_state:
+                progress_data = load_progress_data()
+                user_progress = progress_data[progress_data['username'] == st.session_state['username']]
+                st.write(user_progress)
+
+        elif choice == "Feedback":
+            st.subheader("Feedback")
+            feedback = st.text_area("Your feedback")
+            if st.button("Submit Feedback"):
+                st.success("Thank you for your feedback!")
+
+        elif choice == "Logout":
+            st.sidebar.warning("Logged out!")
+            del st.session_state['username']
+
 if __name__ == "__main__":
     main()
