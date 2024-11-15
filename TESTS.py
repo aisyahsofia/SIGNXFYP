@@ -1,16 +1,22 @@
+import tensorflow as tf
+import numpy as np
+import cv2
+import json
+import os
 import streamlit as st
 import pandas as pd
 import hashlib
 import random
-import cv2
-import numpy as np
-import os
+from pathlib import Path
 
 
-print(cv2.__version__)
+# Paths for model and data
+DATASET_PATH = r"C:\Users\puter\Downloads\final\data\static\images"
+ANNOTATIONS_PATH = r"C:\Users\puter\Downloads\final\data\labels\compile.json"
+MODEL_PATH = r"C:\Users\puter\Downloads\final\data\keraspt1"
+OUTPUT_PATH = r"C:\Users\puter\Downloads\final"
 
-
-# File paths
+# File paths for user and progress data
 USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
 SIGN_DATA_FILE = "sign_language_data.csv"
@@ -72,6 +78,46 @@ ASL_ALPHABET = {
     'Z': f"{BASE_URL}Z%20ASL.mp4"
 }
 
+# Load the trained model
+def load_model(model_path):
+    try:
+        model = tf.keras.models.load_model(model_path)
+        print(f"Model loaded successfully from {model_path}")
+        return model
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        return None
+
+# Load annotations
+def load_annotations(annotations_path):
+    try:
+        with open(annotations_path, 'r') as f:
+            annotations = json.load(f)
+        print(f"Annotations loaded from {annotations_path}")
+        return annotations
+    except Exception as e:
+        print(f"Error loading annotations: {e}")
+        return None
+
+# Preprocess image for model
+def preprocess_image(image_path, target_size=(224, 224)):
+    img = cv2.imread(image_path)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = cv2.resize(img, target_size)
+    img = img / 255.0  # Normalize to [0, 1]
+    img = np.expand_dims(img, axis=0)  # Add batch dimension
+    return img
+
+# Predict sign from image
+def predict_sign(model, image_path, annotations):
+    preprocessed_img = preprocess_image(image_path)
+    prediction = model.predict(preprocessed_img)
+    predicted_label = np.argmax(prediction)
+    
+    # Map to the label name
+    label_name = annotations.get(str(predicted_label), "Unknown")
+    return label_name
+
 # Hashing function for passwords
 def hash_password(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
@@ -98,96 +144,8 @@ def load_progress_data():
     except FileNotFoundError:
         return pd.DataFrame(columns=["username", "phrase"])
 
-# Login system
-def login():
-    st.title("SignX: Next-Gen Technology for Deaf Communications")
-
-    
-    users_data = load_user_data()
-    
-    st.subheader("Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    
-    hashed_password = hash_password(password)
-
-    if st.button("Login"):
-        if username in users_data['username'].values:
-            stored_password = users_data[users_data['username'] == username]['password'].values[0]
-            if stored_password == hashed_password:
-                st.success(f"Welcome back, {username}!")
-                st.session_state['logged_in'] = True
-                st.session_state['username'] = username
-            else:
-                st.error("Invalid password")
-        else:
-            st.error("Username not found")
-
-# Sign-up system
-def sign_up():
-    st.subheader("Sign Up")
-    username = st.text_input("New Username")
-    password = st.text_input("New Password", type="password")
-    confirm_password = st.text_input("Confirm Password", type="password")
-
-    if st.button("Sign Up"):
-        if password == confirm_password:
-            users_data = load_user_data()
-            if username not in users_data['username'].values:
-                hashed_password = hash_password(password)
-                new_user = pd.DataFrame([[username, hashed_password]], columns=["username", "password"])
-                users_data = pd.concat([users_data, new_user], ignore_index=True)
-                save_user_data(users_data)
-                st.success("Account created successfully! Please log in.")
-            else:
-                st.error("Username already exists!")
-        else:
-            st.error("Passwords do not match")
-
-# Training module
-def training():
-    st.subheader("Sign Language Training")
-    for phrase, video in SIGN_LANGUAGE_DATA.items():
-        st.write(f"Phrase: {phrase}")
-        try:
-            st.video(video)
-        except Exception as e:
-            st.error(f"Error loading video: {str(e)}")
-        if st.button(f"Mark {phrase} as learned"):
-            track_progress(st.session_state['username'], phrase)
-
-# ASL alphabet training
-def asl_alphabet_training():
-    st.subheader("Learn the ASL Alphabet")
-    for letter, video in ASL_ALPHABET.items():
-        st.write(f"Letter: {letter}")
-        try:
-            st.video(video)
-        except Exception as e:
-            st.error(f"Error loading video: {str(e)}")
-        if st.button(f"Mark {letter} as learned"):
-            track_progress(st.session_state['username'], letter)
-
-# Performance tracking
-def track_progress(username, phrase):
-    progress_data = load_progress_data()
-    new_entry = pd.DataFrame([[username, phrase]], columns=["username", "phrase"])
-    progress_data = pd.concat([progress_data, new_entry], ignore_index=True)
-    save_progress_data(progress_data)
-    st.success(f"'{phrase}' marked as learned!")
-
-# Display user progress
-def show_progress(username):
-    st.subheader("Your Learning Progress")
-    progress_data = load_progress_data()
-    user_progress = progress_data[progress_data['username'] == username]
-    if user_progress.empty:
-        st.write("No progress yet.")
-    else:
-        st.table(user_progress)
-
 # Camera feature for sign detection
-def sign_detection():
+def sign_detection(model, annotations):
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
     
@@ -197,122 +155,49 @@ def sign_detection():
         image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
 
         # Placeholder for model predictions
-        # You can integrate a machine learning model here for sign recognition
-        # For this example, let's assume the model recognized "Hello"
-        detected_sign = "Hello"  # Placeholder for detected sign
+        label_name = predict_sign(model, image, annotations)
 
         st.image(image, caption="Captured Sign", use_column_width=True)
 
-        # Simulate progress tracking for the recognized sign
-        if detected_sign:
-            st.write(f"Detected sign: {detected_sign}")
-            if st.button(f"Mark '{detected_sign}' as learned"):
-                track_progress(st.session_state['username'], detected_sign)
-                st.success(f"'{detected_sign}' marked as learned!")
+        if label_name:
+            st.write(f"Detected sign: {label_name}")
+            if st.button(f"Mark '{label_name}' as learned"):
+                track_progress(st.session_state['username'], label_name)
+                st.success(f"'{label_name}' marked as learned!")
 
-    else:
-        st.error("No image captured yet.")
+# Progress tracking
+def track_progress(username, phrase):
+    progress_data = load_progress_data()
+    new_entry = pd.DataFrame([[username, phrase]], columns=["username", "phrase"])
+    progress_data = pd.concat([progress_data, new_entry], ignore_index=True)
+    save_progress_data(progress_data)
+    st.success(f"'{phrase}' marked as learned!")
 
-# Quiz feature
-def quiz():
-    st.subheader("Sign Language Quiz")
-
-    # Initialize quiz type and question if not set
-    if 'quiz_type' not in st.session_state:
-        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
-
-    if 'current_question' not in st.session_state:
-        if st.session_state['quiz_type'] == 'word':
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
-        else:
-            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
-            st.session_state['question_data'] = ASL_ALPHABET
-
-    # Display current question and video
-    question = st.session_state['current_question']
-    question_data = st.session_state['question_data']
-    st.write("What does this sign mean?")
-    st.video(question_data[question])
-
-    # Display answer input and Submit button
-    answer = st.text_input("Your answer")
-
-    if 'submitted' not in st.session_state:
-        st.session_state['submitted'] = False
-
-    # Show feedback after Submit
-    if st.button("Submit") and not st.session_state['submitted']:
-        if answer.strip().lower() == question.lower():
-            st.success("Correct!")
-            track_progress(st.session_state['username'], question)
-        else:
-            st.error(f"Incorrect! The correct answer was '{question}'.")
-
-        st.session_state['submitted'] = True  # Set submitted to True after submission
-
-    # Show Next button after feedback is given
-    if st.session_state['submitted'] and st.button("Next"):
-        # Reset submitted state
-        st.session_state['submitted'] = False
-
-        # Select a new question and type
-        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
-        if st.session_state['quiz_type'] == 'word':
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
-        else:
-            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
-            st.session_state['question_data'] = ASL_ALPHABET
-
-
-# Feedback system
-def feedback():
-    st.subheader("Feedback")
+# Main function
+def main():
+    model = load_model(MODEL_PATH)
+    annotations = load_annotations(ANNOTATIONS_PATH)
     
-    # Slider for rating (1-5 scale)
-    rating = st.slider("Please rate your experience:", 1, 5, 3)  # Default to 3 (neutral)
-    
-    # Feedback text input
-    feedback_text = st.text_area("Please provide your feedback or suggestions:")
-    
-    if st.button("Submit Feedback"):
-        if feedback_text:
-            st.success(f"Thank you for your feedback! You rated us {rating} out of 5.")
-            # You can add logic here to save the feedback with the rating, e.g., saving to a CSV or a database.
-        else:
-            st.error("Please provide your feedback text.")
-    
-
-# Main app flow
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-
-if not st.session_state['logged_in']:
-    st.sidebar.title("SignX: Next-Gen Technology for Deaf Communications")
-    login_option = st.sidebar.selectbox("Login or Sign Up", ["Login", "Sign Up"])
-
-    if login_option == "Login":
+    if model and annotations:
+        st.title("SignX: Sign Language Learning App")
+        
+        # Login or sign-up system
         login()
-    else:
-        sign_up()
-else:
-    st.sidebar.title(f"Welcome, {st.session_state['username']}")
-    action = st.sidebar.selectbox("Action", ["Training", "ASL Alphabet", "Your Progress", "Quiz", "Sign Detection", "Feedback", "Logout"])
 
-    if action == "Training":
-        training()
-    elif action == "ASL Alphabet":
-        asl_alphabet_training()
-    elif action == "Your Progress":
-        show_progress(st.session_state['username'])
-    elif action == "Quiz":
-        quiz()
-    elif action == "Sign Detection":
-        sign_detection()
-    elif action == "Feedback":
-        feedback()
-    elif action == "Logout":
-        st.session_state['logged_in'] = False
-        del st.session_state['username']
-        st.write("You have been logged out.")
+        # Choose features
+        menu = ["Sign Detection", "Training", "Alphabet Training"]
+        choice = st.sidebar.selectbox("Choose a feature", menu)
+
+        if choice == "Sign Detection":
+            sign_detection(model, annotations)
+        elif choice == "Training":
+            training()
+        elif choice == "Alphabet Training":
+            asl_alphabet_training()
+        
+    else:
+        st.error("Failed to load model or annotations. Please check paths.")
+
+# Run the app
+if __name__ == "__main__":
+    main()
