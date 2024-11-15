@@ -4,7 +4,7 @@ import numpy as np
 from tensorflow.keras.models import load_model
 
 # Load the model (only once outside the loop)
-model = load_model(r"C:\xampp\htdocs\Project\GitSIgn\Compile\data\keras\compile.keras")
+model = load_model(r"C:\Users\puter\Downloads\final\data\keraspt1")
 
 # Initialize video capture (change 0 if needed)
 cap = cv2.VideoCapture(0)
