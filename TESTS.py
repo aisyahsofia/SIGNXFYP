@@ -14,6 +14,7 @@ print(cv2.__version__)
 USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
 SIGN_DATA_FILE = "sign_language_data.csv"
+FEEDBACK_FILE = 'feedback.csv'
 
 # Base URL for GitHub raw files
 BASE_URL = "https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/"
