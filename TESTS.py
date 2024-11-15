@@ -302,9 +302,8 @@ else:
     elif action == "Sign Detection":
         sign_detection()
     elif action == "Feedback":
-        feedback() # Feedback storage file
-FEEDBACK_FILE = 'feedback.csv'
-
+        feedback() 
+# Feedback storage file
 # Email notification settings
 SMTP_SERVER = 'smtp.gmail.com'
 SMTP_PORT = 587
