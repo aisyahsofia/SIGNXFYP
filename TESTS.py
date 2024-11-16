@@ -11,7 +11,7 @@ model.save('path_to_your_model.keras')
 
 st.title("SignX App")
 
-model_path = r"C:\Users\puter\Downloads\final\data\keraspt1\AisyahSignX59.keras"
+model_path = r"C:\Users\puter\Downloads\final\data\keraspt1\AisyahSignX01.keras"
 
 # Load the model
 try:
