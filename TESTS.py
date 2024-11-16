@@ -172,7 +172,7 @@ def sign_detection():
     # gdown.download('https://drive.google.com/uc?id=1yRD3a942y5yID2atOF2o71lLwhOBoqJ-', 'AisyahSignX59.h5', quiet=False)
 
     # Load the model (make sure the model is either downloaded or placed in the correct folder)
-    model = load_model('AisyahSignX59.h5')  # Load the model after it's available
+    model = load_model(r'C:\Users\puter\Downloads\final\AisyahSignX59.h5')  # Load the model after it's available
 
     # Setup MediaPipe hands
     mp_hands = mp.solutions.hands
