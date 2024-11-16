@@ -212,6 +212,19 @@ def sign_detection():
     hands = mp_hands.Hands()
     mp_draw = mp.solutions.drawing_utils
 
+  def sign_detection():
+    st.subheader("Sign Detection Camera")
+    st.write("Point your camera to detect ASL signs.")
+
+    # Load the model if it's not already loaded
+    if 'model' not in st.session_state:
+        st.session_state['model'] = load_model('AisyahSignX59.h5')
+    
+    # Setup MediaPipe hands
+    mp_hands = mp.solutions.hands
+    hands = mp_hands.Hands()
+    mp_draw = mp.solutions.drawing_utils
+
     # Open camera feed
     cap = cv2.VideoCapture(0)
 
@@ -232,19 +245,21 @@ def sign_detection():
                 # Draw landmarks on the frame
                 mp_draw.draw_landmarks(frame, landmarks, mp_hands.HAND_CONNECTIONS)
 
-                # Get the landmarks and prepare data for prediction
-                data = np.array(landmarks.landmark).flatten().reshape(1, -1)
+                # Flatten the landmarks and prepare data for prediction
+                data = np.array([lm for lm in landmarks.landmark]).flatten().reshape(1, -1)
 
                 # Make prediction using the loaded model
-                prediction = model.predict(data)
+                prediction = st.session_state['model'].predict(data)
+                predicted_class = np.argmax(prediction)  # Get the class with the highest probability
 
                 # Display the prediction result
-                st.write(f"Prediction: {prediction}")
+                st.write(f"Prediction: {predicted_class}")
 
         # Display the frame in Streamlit
         st.image(frame, channels="BGR", use_column_width=True)
 
     cap.release()
+
 
 # Quiz feature
 def quiz():
