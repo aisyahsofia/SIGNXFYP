@@ -198,29 +198,17 @@ def show_progress(username):
 
 # Camera feature for sign detection
 def sign_detection():
-    # Proper indentation using 4 spaces
-    st.write("Point your camera to detect ASL signs.")
-    
-    # Model download from Google Drive
-    gdown.download('https://drive.google.com/uc?id=1yRD3a942y5yID2atOF', 'model.h5', quiet=False)
-    
-    # Load the model
-    model = load_model('AisyahSignX59.h5')
-
-    # Setup MediaPipe hands
-    mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands()
-    mp_draw = mp.solutions.drawing_utils
-
-  def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
 
-    # Load the model if it's not already loaded
+    # Download the model if it's not already present
     if 'model' not in st.session_state:
-        st.session_state['model'] = load_model('AisyahSignX59.h5')
-    
-    # Setup MediaPipe hands
+        model_url = 'https://drive.google.com/uc?id=1yRD3a942y5yID2atOF'  # Replace with actual model link
+        model_path = 'AisyahSignX59.h5'
+        gdown.download(model_url, model_path, quiet=False)
+        st.session_state['model'] = load_model(model_path)
+
+    # Initialize MediaPipe hands
     mp_hands = mp.solutions.hands
     hands = mp_hands.Hands()
     mp_draw = mp.solutions.drawing_utils
@@ -233,7 +221,7 @@ def sign_detection():
         if not ret:
             continue
 
-        # Flip the frame horizontally
+        # Flip the frame horizontally for a mirror view
         frame = cv2.flip(frame, 1)
 
         # Convert the frame to RGB
