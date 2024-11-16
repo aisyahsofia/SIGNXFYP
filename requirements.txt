@@ -8,3 +8,4 @@ libglu1-mesa
 tensorflow
 mediapipe
 streamlit-webrtc
+gdown
