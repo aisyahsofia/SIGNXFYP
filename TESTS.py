@@ -5,16 +5,28 @@ import numpy as np
 from tensorflow.keras.models import load_model
 from PIL import Image
 
-# Provide the correct file path to the model
+st.title("SignX App")
+
 model_path = r"C:\Users\puter\Downloads\final\data\keraspt1\AisyahSignX59.keras"
 
 # Load the model
 try:
+    st.write("Loading model...")
     model = load_model(model_path)
-    print("Model loaded successfully!")
-    print(f"Model input shape: {model.input_shape}")
+    st.write("Model loaded successfully!")
+
+    # Debugging input shape
+    input_shape = model.input_shape
+    st.write(f"Model input shape: {input_shape}")
+    
+    if input_shape:
+        expected_input_size = input_shape[1]
+        st.write(f"Expected input size: {expected_input_size}")
+    else:
+        st.error("Model input shape is not defined.")
+
 except Exception as e:
-    print(f"Error loading model: {e}")
+    st.error(f"Error: {e}")
 
 # Check the model's input shape to determine the expected input size
 expected_input_size = model.input_shape[1]
