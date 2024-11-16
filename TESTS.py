@@ -4,6 +4,10 @@ import mediapipe as mp
 import numpy as np
 from tensorflow.keras.models import load_model
 from PIL import Image
+from tensorflow.keras.models import load_model
+
+model = load_model('path_to_your_model.h5')
+model.save('path_to_your_model.keras')
 
 st.title("SignX App")
 
