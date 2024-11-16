@@ -5,8 +5,12 @@ import numpy as np
 from tensorflow.keras.models import load_model
 from PIL import Image
 
-# Load the Keras model
-model = load_model(r"C:\Users\puter\final\data\keras\AisyahSignX59.keras")
+try:
+    model = load_model(r"C:\Users\puter\final\data\keras\AisyahSignX59.keras")
+    print("Model loaded successfully!")
+except Exception as e:
+    print(f"Error loading model: {e}")
+
 
 # Check the model's input shape to determine the expected input size
 expected_input_size = model.input_shape[1]
