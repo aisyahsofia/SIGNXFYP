@@ -6,7 +6,6 @@ import cv2
 import numpy as np
 import mediapipe as mp
 from tensorflow.keras.models import load_model
-import gdown
 
 # Print OpenCV version for debugging
 print(cv2.__version__)
@@ -169,11 +168,11 @@ def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
 
-    # Model download from Google Drive
-    gdown.download('https://drive.google.com/uc?id=1yRD3a942y5yID2atOF2o71lLwhOBoqJ-', 'AisyahSignX59.h5', quiet=False)
+    # Download the model if needed (optional, if you manually place the model, you can skip this part)
+    # gdown.download('https://drive.google.com/uc?id=1yRD3a942y5yID2atOF2o71lLwhOBoqJ-', 'AisyahSignX59.h5', quiet=False)
 
-    # Load the model
-    model = load_model('AisyahSignX59.h5')
+    # Load the model (make sure the model is either downloaded or placed in the correct folder)
+    model = load_model('AisyahSignX59.h5')  # Load the model after it's available
 
     # Setup MediaPipe hands
     mp_hands = mp.solutions.hands
@@ -209,6 +208,7 @@ def sign_detection():
         st.image(frame, channels="BGR")
 
     cap.release()
+
 
 # Main function to handle the app flow
 def main():
