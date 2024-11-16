@@ -5,8 +5,20 @@ import streamlit as st
 from tensorflow.keras.models import load_model
 from PIL import Image
 
-# Load the Keras model
-model = load_model('./models/AisyahSignX59.keras')
+# Allow the user to upload the model file
+uploaded_file = st.file_uploader("Upload your model", type=["h5", "keras"])
+
+# If a file is uploaded, load the model
+if uploaded_file is not None:
+    try:
+        model = load_model(uploaded_file)
+        st.write("Model loaded successfully!")
+    except Exception as e:
+        st.write(f"Error loading the model: {e}")
+        
+# Proceed with the rest of your code (handling video, predictions, etc.)
+# For simplicity, I'm not repeating your whole OpenCV/mediapipe loop here, 
+# but make sure to integrate it with Streamlit's video functionality if needed.
 
 # Check the model's input shape to determine the expected input size
 expected_input_size = model.input_shape[1]  # Adjust based on your model's input shape
