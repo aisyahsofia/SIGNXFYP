@@ -14,18 +14,28 @@ def convert_keras_to_h5(model_path, output_path):
         # Save the model to .h5 format
         model.save(output_path)
         print(f"Model saved as {output_path}")
+        
+        return model  # Return the loaded model
     
     except Exception as e:
         print(f"Error during conversion: {e}")
+        return None
 
 if __name__ == "__main__":
     # Define paths for the input .keras model and output .h5 model
     model_path = r"C:\Users\puter\Downloads\final\data\keraspt1\AisyahSignX59.keras"  # Change this path if needed
     output_path = r"C:\Users\puter\Downloads\final\data\keraspt1\AisyahSignX59.h5"   # Define output path
 
-    # Convert the model
-    convert_keras_to_h5(model_path, output_path)
-
+    # Convert the model and get the loaded model
+    model = convert_keras_to_h5(model_path, output_path)
+    
+    if model:
+        # Check the model's input shape to determine the expected input size
+        expected_input_size = model.input_shape[1]
+        print(f"Expected input size: {expected_input_size}")
+    else:
+        print("Model conversion failed.")
+        
 # Check the model's input shape to determine the expected input size
 expected_input_size = model.input_shape[1]
 
