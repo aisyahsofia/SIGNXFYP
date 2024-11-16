@@ -1,88 +1,84 @@
-import streamlit as st
 import cv2
 import mediapipe as mp
 import numpy as np
+import streamlit as st
 from tensorflow.keras.models import load_model
 from PIL import Image
 
-def convert_keras_to_h5(model_path, output_path):
-    try:
-        # Load the model from the .keras file
-        model = load_model(model_path)
-        print(f"Model loaded from {model_path}")
-        
-        # Save the model to .h5 format
-        model.save(output_path)
-        print(f"Model saved as {output_path}")
-        
-        return model  # Return the loaded model
-    
-    except Exception as e:
-        print(f"Error during conversion: {e}")
-        return None
+# Load the Keras model
+model = load_model(r"C:\Users\puter\Downloads\final\data\keraspt1\AisyahSignX59.keras")
 
-if __name__ == "__main__":
-    # Define paths for the input .keras model and output .h5 model
-    model_path = r"C:\Users\puter\Downloads\final\data\keraspt1\AisyahSignX59.keras"  # Change this path if needed
-    output_path = r"C:\Users\puter\Downloads\final\data\keraspt1\AisyahSignX59.h5"   # Define output path
-
-    # Convert the model and get the loaded model
-    model = convert_keras_to_h5(model_path, output_path)
-    
-    if model:
-        # Check the model's input shape to determine the expected input size
-        expected_input_size = model.input_shape[1]
-        print(f"Expected input size: {expected_input_size}")
-    else:
-        print("Model conversion failed.")
-        
 # Check the model's input shape to determine the expected input size
-expected_input_size = model.input_shape[1]
-
-# Label dictionary for mapping predicted indices to characters
-label_dict = {
-    '0': 'A', '1': 'B', '2': 'C', '3': 'D', '4': 'E',
-    '5': 'F', '6': 'G', '7': 'H', '8': 'I', '9': 'K',
-    '10': 'L', '11': 'M', '12': 'N', '13': 'O', '14': 'P',
-    '15': 'Q', '16': 'R', '17': 'S', '18': 'T', '19': 'U',
-    '20': 'V', '21': 'W', '22': 'X', '23': 'Y'
-}
+expected_input_size = model.input_shape[1]  # Adjust based on your model's input shape
 
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
 
-def process_frame(frame, hands):
-    """
-    Process the input frame to detect hand gestures and predict sign language.
-    """
+hands = mp_hands.Hands(
+    static_image_mode=False,  # Set to False for continuous detection
+    max_num_hands=1,  # Detect one hand at a time for simplicity
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5
+)
+
+# Label dictionary for mapping predicted indices to characters
+label_dict = {
+    '0': 'A', '1': 'B', '2': 'C', '3': 'D', '4': 'E', '5': 'F', '6': 'G',
+    '7': 'H', '8': 'I', '9': 'K', '10': 'L', '11': 'M', '12': 'N', '13': 'O',
+    '14': 'P', '15': 'Q', '16': 'R', '17': 'S', '18': 'T', '19': 'U', '20': 'V',
+    '21': 'W', '22': 'X', '23': 'Y'
+}
+
+# Streamlit UI setup
+st.title("Sign Language Recognition")
+st.write("Use your webcam to recognize sign language gestures.")
+
+# Camera input
+camera_input = st.camera_input("Take a photo")
+
+# Check if a frame is captured
+if camera_input:
+    # Convert the uploaded image to a frame
+    frame = np.array(camera_input)
+    
+    # Convert frame to RGB for MediaPipe processing
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = hands.process(frame_rgb)
 
+    # If hand landmarks are detected
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
+            # Draw landmarks on the frame
             mp_drawing.draw_landmarks(
                 frame,
                 hand_landmarks,
-                mp_hands.HAND_CONNECTIONS
+                mp_hands.HAND_CONNECTIONS,
+                mp_drawing_styles.get_default_hand_landmarks_style(),
+                mp_drawing_styles.get_default_hand_connections_style()
             )
 
-            # Prepare data for prediction
+            # Extract normalized landmark coordinates
             data_aux = []
-            x_, y_ = [], []
+            x_ = []
+            y_ = []
             for landmark in hand_landmarks.landmark:
                 x_.append(landmark.x)
                 y_.append(landmark.y)
-            min_x, min_y = min(x_), min(y_)
 
+            # Create feature vector
+            min_x, min_y = min(x_), min(y_)
             for landmark in hand_landmarks.landmark:
                 data_aux.append(landmark.x - min_x)
                 data_aux.append(landmark.y - min_y)
 
-            # Model prediction
+            # Ensure correct data format for model prediction
             if len(data_aux) == expected_input_size:
                 data_aux = np.asarray(data_aux).reshape(1, -1)
                 prediction = model.predict(data_aux)
+
+                # Get predicted class and probability
                 predicted_class_index = np.argmax(prediction, axis=1)[0]
                 predicted_probability = prediction[0][predicted_class_index]
 
@@ -91,59 +87,19 @@ def process_frame(frame, hands):
                 else:
                     predicted_character = 'Unknown'
 
-                # Display prediction on frame
-                cv2.putText(
-                    frame,
-                    f'{predicted_character} ({predicted_probability * 100:.2f}%)',
-                    (10, 30),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (255, 0, 0),
-                    2,
-                    cv2.LINE_AA
-                )
-    return frame
+                # Draw prediction on the frame
+                x1 = int(min(x_) * frame.shape[1]) - 10
+                y1 = int(min(y_) * frame.shape[0]) - 10
+                x2 = int(max(x_) * frame.shape[1]) + 10
+                y2 = int(max(y_) * frame.shape[0]) + 10
 
-# Streamlit UI
-st.title("Real-Time Sign Language Recognition")
-st.write("This app uses a webcam feed to recognize ASL gestures in real time.")
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (72, 61, 139), 4)
+                cv2.putText(frame, f'{predicted_character} ({predicted_probability * 100:.2f}%)',
+                            (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.3, (72, 61, 139), 3, cv2.LINE_AA)
 
-# Start button
-if st.button("Start Webcam"):
-    hands = mp_hands.Hands(
-        static_image_mode=False,
-        max_num_hands=1,
-        min_detection_confidence=0.5,
-        min_tracking_confidence=0.5
-    )
+    # Convert the frame to an image for Streamlit
+    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+    image = Image.fromarray(frame_bgr)
 
-    # Initialize webcam
-    cap = cv2.VideoCapture(0)
-    stframe = st.empty()  # Placeholder for the video feed
-
-    if not cap.isOpened():
-        st.error("Could not open the webcam.")
-    else:
-        try:
-            while cap.isOpened():
-                ret, frame = cap.read()
-                if not ret:
-                    st.warning("Failed to capture frame.")
-                    break
-
-                # Process frame
-                frame = process_frame(frame, hands)
-
-                # Convert to RGB for Streamlit display
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                stframe.image(frame_rgb, channels="RGB")
-
-                # Stop if 'q' is pressed
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-        finally:
-            cap.release()
-else:
-    st.info("Click 'Start Webcam' to begin.")
-
-st.write("To exit the webcam feed, press 'q' in the window or stop the app.")
+    # Display the image with the prediction
+    st.image(image, caption="Sign Language Recognition", use_column_width=True)
