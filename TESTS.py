@@ -205,7 +205,7 @@ def sign_detection():
     gdrive_link = 'https://drive.google.com/uc?id=1yRD3a942y5yID2atOF2o71lLwhOBoqJ-'
 
     # Download the model from Google Drive
-    gdown.download(gdrive_link, 'AisyahSignX59.h5', quiet=False)
+    gdown.download('https://drive.google.com/uc?id=1yRD3a942y5yID2atOF2o71lLwhOBoqJ-', 'AisyahSignX59.h5', quiet=False)
 
     # Load the model
     model = load_model('AisyahSignX59.h5')
