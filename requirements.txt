@@ -6,4 +6,4 @@ pandas
 tensorflow
 mediapipe
 streamlit-webrtc
-gdown==5.2.0
+gdown
