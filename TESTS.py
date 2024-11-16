@@ -93,92 +93,29 @@ def login():
         else:
             st.error("Username not found")
 
-# Sign-up system
-def sign_up():
-    st.subheader("Sign Up")
-    username = st.text_input("New Username")
-    password = st.text_input("New Password", type="password")
-    confirm_password = st.text_input("Confirm Password", type="password")
-
-    if st.button("Sign Up"):
-        if password == confirm_password:
-            users_data = load_user_data()
-            if username not in users_data['username'].values:
-                hashed_password = hash_password(password)
-                new_user = pd.DataFrame([[username, hashed_password]], columns=["username", "password"])
-                users_data = pd.concat([users_data, new_user], ignore_index=True)
-                save_user_data(users_data)
-                st.success("Account created successfully! Please log in.")
-            else:
-                st.error("Username already exists!")
-        else:
-            st.error("Passwords do not match")
-
-# Training module with dropdown
-def training():
-    st.subheader("Sign Language Training")
-    selected_phrase = st.selectbox("Choose a phrase to learn", list(SIGN_LANGUAGE_DATA.keys()))
-
-    if selected_phrase:
-        st.write(f"Phrase: {selected_phrase}")
-        video_url = SIGN_LANGUAGE_DATA[selected_phrase]
-        try:
-            st.video(video_url)
-        except Exception as e:
-            st.error(f"Error loading video: {str(e)}")
-
-        if st.button(f"Mark {selected_phrase} as learned"):
-            track_progress(st.session_state['username'], selected_phrase)
-
-# ASL alphabet training with dropdown
-def asl_alphabet_training():
-    st.subheader("Learn the ASL Alphabet")
-    selected_letter = st.selectbox("Choose a letter to learn", list(ASL_ALPHABET.keys()))
-
-    if selected_letter:
-        st.write(f"Letter: {selected_letter}")
-        video_url = ASL_ALPHABET[selected_letter]
-        try:
-            st.video(video_url)
-        except Exception as e:
-            st.error(f"Error loading video: {str(e)}")
-
-        if st.button(f"Mark {selected_letter} as learned"):
-            track_progress(st.session_state['username'], selected_letter)
-
-# Performance tracking
-def track_progress(username, phrase):
-    progress_data = load_progress_data()
-    new_entry = pd.DataFrame([[username, phrase]], columns=["username", "phrase"])
-    progress_data = pd.concat([progress_data, new_entry], ignore_index=True)
-    save_progress_data(progress_data)
-    st.success(f"'{phrase}' marked as learned!")
-
-# Display user progress
-def show_progress(username):
-    st.subheader("Your Learning Progress")
-    progress_data = load_progress_data()
-    user_progress = progress_data[progress_data['username'] == username]
-    if user_progress.empty:
-        st.write("No progress yet.")
-    else:
-        st.table(user_progress)
+# Model download function
+def download_model():
+    model_path = "AisyahSignX59.h5"
+    if not os.path.exists(model_path):  # Check if the model file exists locally
+        gdown.download('https://drive.google.com/uc?id=1yRD3a942y5yID2atOF2o71lLwhOBoqJ-', model_path, quiet=False)
+    return model_path
 
 # Camera feature for sign detection
 def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
 
-    # Model download from Google Drive
-    gdown.download('https://drive.google.com/uc?id=1yRD3a942y5yID2atOF2o71lLwhOBoqJ-', 'AisyahSignX59.h5', quiet=False)
-
-    # Load the model
-    model = load_model('AisyahSignX59.h5')
+    # Download and load the model
+    model_path = download_model()
+    model = load_model(model_path)
 
     # Setup MediaPipe hands
     mp_hands = mp.solutions.hands
     hands = mp_hands.Hands()
     mp_draw = mp.solutions.drawing_utils
+
+    # Create a placeholder for displaying video frames
+    frame_placeholder = st.empty()
 
     # Open camera feed
     cap = cv2.VideoCapture(0)
@@ -199,14 +136,16 @@ def sign_detection():
             for landmarks in results.multi_hand_landmarks:
                 mp_draw.draw_landmarks(frame, landmarks, mp_hands.HAND_CONNECTIONS)
 
-                # Get the landmarks and make predictions (model inference part is simplified)
+                # Flatten the landmarks to prepare input for the model
                 data = np.array(landmarks.landmark).flatten().reshape(1, -1)
                 prediction = model.predict(data)
+                predicted_class = np.argmax(prediction, axis=1)  # Assuming the model returns class probabilities
 
-                st.write(f"Prediction: {prediction}")
+                # Display the prediction result
+                st.write(f"Prediction: Class {predicted_class}")
 
-        # Display the frame
-        st.image(frame, channels="BGR")
+        # Update the displayed frame
+        frame_placeholder.image(frame, channels="BGR", use_column_width=True)
 
     cap.release()
 
