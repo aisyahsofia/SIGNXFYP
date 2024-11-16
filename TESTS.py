@@ -198,12 +198,12 @@ def show_progress(username):
 
 # Camera feature for sign detection
 def sign_detection():
-    st.subheader("Sign Detection Camera")
+    # Proper indentation using 4 spaces
     st.write("Point your camera to detect ASL signs.")
-
+    
     # Model download from Google Drive
-    gdown.download('https://drive.google.com/uc?id=1yRD3a942y5yID2atOF2o71lLwhOBoqJ-', 'AisyahSignX59.h5', quiet=False)
-
+    gdown.download('https://drive.google.com/uc?id=1yRD3a942y5yID2atOF', 'model.h5', quiet=False)
+    
     # Load the model
     model = load_model('AisyahSignX59.h5')
 
