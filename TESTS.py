@@ -8,6 +8,8 @@ import os
 import cv2
 import mediapipe as mp
 from tensorflow.keras.models import load_model
+import gdown
+from keras.models import load_model
 
 
 print(cv2.__version__)
@@ -202,8 +204,15 @@ def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
 
-    # Load the Keras model
-    model = load_model(r"C:\Users\puter\final\data\keras\AisyahSignX59.keras")
+    # Replace with your Google Drive shareable link
+    gdrive_link = 'https://drive.google.com/uc?id=1yRD3a942y5yID2atOF2o71lLwhOBoqJ-'
+
+    # Download the model from Google Drive
+    gdown.download(gdrive_link, 'AisyahSignX59.h5', quiet=False)
+    
+    # Load the model
+    model = load_model('AisyahSignX59.h5')
+
 
     # Check the model's input shape to determine the expected input size
     expected_input_size = model.input_shape[1]  # Adjust based on your model's input shape
