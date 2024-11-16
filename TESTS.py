@@ -5,12 +5,16 @@ import numpy as np
 from tensorflow.keras.models import load_model
 from PIL import Image
 
+# Provide the correct file path to the model
+model_path = r"C:\Users\puter\Downloads\final\data\keraspt1\AisyahSignX59.keras"
+
+# Load the model
 try:
-    model = load_model(r"C:\Users\puter\final\data\keras\AisyahSignX59.keras")
+    model = load_model(model_path)
     print("Model loaded successfully!")
+    print(f"Model input shape: {model.input_shape}")
 except Exception as e:
     print(f"Error loading model: {e}")
-
 
 # Check the model's input shape to determine the expected input size
 expected_input_size = model.input_shape[1]
