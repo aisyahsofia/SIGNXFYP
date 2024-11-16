@@ -7,17 +7,11 @@ import numpy as np
 import mediapipe as mp
 from tensorflow.keras.models import load_model
 import gdown
-
-print("gdown module loaded successfully.")
-
-
-# Print OpenCV version for debugging
-print(cv2.__version__)
+import time
 
 # File paths for storing user and progress data
 USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
-SIGN_DATA_FILE = "sign_language_data.csv"
 
 # Base URL for GitHub raw files for sign language data
 BASE_URL = "https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/"
@@ -47,7 +41,34 @@ SIGN_LANGUAGE_DATA = {
 }
 
 # Basic ASL alphabet
-ASL_ALPHABET = {letter: f"{BASE_URL}{letter}%20ASL.mp4" for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'}
+ASL_ALPHABET = {
+    'A': f"{BASE_URL}A%20ASL.mp4",
+    'B': f"{BASE_URL}B%20ASL.mp4",
+    'C': f"{BASE_URL}C%20ASL.mp4",
+    'D': f"{BASE_URL}D%20ASL.mp4",
+    'E': f"{BASE_URL}E%20ASL.mp4",
+    'F': f"{BASE_URL}F%20ASL.mp4",
+    'G': f"{BASE_URL}G%20ASL.mp4",
+    'H': f"{BASE_URL}H%20ASL.mp4",
+    'I': f"{BASE_URL}I%20ASL.mp4",
+    'J': f"{BASE_URL}J%20ASL.mp4",
+    'K': f"{BASE_URL}K%20ASL.mp4",
+    'L': f"{BASE_URL}L%20ASL.mp4",
+    'M': f"{BASE_URL}M%20ASL.mp4",
+    'N': f"{BASE_URL}N%20ASL.mp4",
+    'O': f"{BASE_URL}O%20ASL.mp4",
+    'P': f"{BASE_URL}P%20ASL.mp4",
+    'Q': f"{BASE_URL}Q%20ASL.mp4",
+    'R': f"{BASE_URL}R%20ASL.mp4",
+    'S': f"{BASE_URL}S%20ASL.mp4",
+    'T': f"{BASE_URL}T%20ASL.mp4",
+    'U': f"{BASE_URL}U%20ASL.mp4",
+    'V': f"{BASE_URL}V%20ASL.mp4",
+    'W': f"{BASE_URL}W%20ASL.mp4",
+    'X': f"{BASE_URL}X%20ASL.mp4",
+    'Y': f"{BASE_URL}Y%20ASL.mp4",
+    'Z': f"{BASE_URL}Z%20ASL.mp4"
+}
 
 # Hashing function for passwords
 def hash_password(password):
@@ -75,6 +96,17 @@ def load_progress_data():
     except FileNotFoundError:
         return pd.DataFrame(columns=["username", "phrase"])
 
+# Model download function
+def download_model():
+    model_path = "AisyahSignX59.h5"
+    try:
+        if not os.path.exists(model_path):  # Check if the model file exists locally
+            gdown.download('https://drive.google.com/uc?id=1yRD3a942y5yID2atOF2o71lLwhOBoqJ-', model_path, quiet=False)
+        return model_path
+    except Exception as e:
+        st.error(f"Error downloading model: {e}")
+        return None
+
 # Login system
 def login():
     st.title("SignX: Next-Gen Technology for Deaf Communications")
@@ -96,90 +128,78 @@ def login():
         else:
             st.error("Username not found")
 
-# Model download function
-def download_model():
-    model_path = "AisyahSignX59.h5"
-    if not os.path.exists(model_path):  # Check if the model file exists locally
-        gdown.download('https://drive.google.com/uc?id=1yRD3a942y5yID2atOF2o71lLwhOBoqJ-', model_path, quiet=False)
-    return model_path
-
-# Camera feature for sign detection
+# Sign Detection Feature
 def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
 
-    # Download and load the model
     model_path = download_model()
-    model = load_model(model_path)
+    if not model_path or not os.path.exists(model_path):
+        st.error("Model not available. Please check your connection or file path.")
+        return
 
-    # Setup MediaPipe hands
+    model = load_model(model_path)
     mp_hands = mp.solutions.hands
     hands = mp_hands.Hands()
     mp_draw = mp.solutions.drawing_utils
-
-    # Create a placeholder for displaying video frames
     frame_placeholder = st.empty()
 
-    # Open camera feed
     cap = cv2.VideoCapture(0)
+    start_time = time.time()
 
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             continue
 
-        # Flip the frame horizontally
         frame = cv2.flip(frame, 1)
-
-        # Convert the frame to RGB
         img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = hands.process(img_rgb)
 
         if results.multi_hand_landmarks:
             for landmarks in results.multi_hand_landmarks:
                 mp_draw.draw_landmarks(frame, landmarks, mp_hands.HAND_CONNECTIONS)
-
-                # Flatten the landmarks to prepare input for the model
-                data = np.array(landmarks.landmark).flatten().reshape(1, -1)
+                data = np.array([lm.x for lm in landmarks.landmark] + [lm.y for lm in landmarks.landmark]).reshape(1, -1)
                 prediction = model.predict(data)
-                predicted_class = np.argmax(prediction, axis=1)  # Assuming the model returns class probabilities
+                predicted_class = np.argmax(prediction, axis=1)
+                cv2.putText(frame, f"Class: {predicted_class[0]}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-                # Display the prediction result
-                st.write(f"Prediction: Class {predicted_class}")
-
-        # Update the displayed frame
         frame_placeholder.image(frame, channels="BGR", use_column_width=True)
+
+        if time.time() - start_time > 10:  # Limit to 10 seconds for demo purposes
+            break
 
     cap.release()
 
+# ASL Alphabet Training
+def asl_alphabet_training():
+    st.subheader("ASL Alphabet Training")
+    st.write("Learn ASL letters by watching the videos below:")
+    for letter, video_url in ASL_ALPHABET.items():
+        st.write(f"### {letter}")
+        st.video(video_url)
+
 # Main function to handle the app flow
 def main():
+    if 'logged_in' not in st.session_state:
+        st.session_state['logged_in'] = False
+    if 'username' not in st.session_state:
+        st.session_state['username'] = None
+
     st.sidebar.title("SignX Menu")
-    menu_options = ["Login", "Sign Up", "Training", "ASL Alphabet", "Progress", "Sign Detection"]
+    menu_options = ["Login", "Sign Detection", "ASL Alphabet"]
     choice = st.sidebar.selectbox("Select an option", menu_options)
 
     if choice == "Login":
         login()
-    elif choice == "Sign Up":
-        sign_up()
-    elif choice == "Training":
-        if 'logged_in' in st.session_state and st.session_state['logged_in']:
-            training()
+    elif choice == "Sign Detection":
+        if st.session_state['logged_in']:
+            sign_detection()
         else:
             st.warning("Please log in first.")
     elif choice == "ASL Alphabet":
-        if 'logged_in' in st.session_state and st.session_state['logged_in']:
+        if st.session_state['logged_in']:
             asl_alphabet_training()
-        else:
-            st.warning("Please log in first.")
-    elif choice == "Progress":
-        if 'logged_in' in st.session_state and st.session_state['logged_in']:
-            show_progress(st.session_state['username'])
-        else:
-            st.warning("Please log in first.")
-    elif choice == "Sign Detection":
-        if 'logged_in' in st.session_state and st.session_state['logged_in']:
-            sign_detection()
         else:
             st.warning("Please log in first.")
 
