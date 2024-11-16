@@ -4,33 +4,27 @@ import mediapipe as mp
 import numpy as np
 from tensorflow.keras.models import load_model
 from PIL import Image
-from tensorflow.keras.models import load_model
 
-model = load_model('path_to_your_model.h5')
-model.save('path_to_your_model.keras')
-
-st.title("SignX App")
-
-model_path = r"C:\Users\puter\Downloads\final\data\keraspt1\AisyahSignX01.keras"
-
-# Load the model
-try:
-    st.write("Loading model...")
-    model = load_model(model_path)
-    st.write("Model loaded successfully!")
-
-    # Debugging input shape
-    input_shape = model.input_shape
-    st.write(f"Model input shape: {input_shape}")
+def convert_keras_to_h5(model_path, output_path):
+    try:
+        # Load the model from the .keras file
+        model = load_model(model_path)
+        print(f"Model loaded from {model_path}")
+        
+        # Save the model to .h5 format
+        model.save(output_path)
+        print(f"Model saved as {output_path}")
     
-    if input_shape:
-        expected_input_size = input_shape[1]
-        st.write(f"Expected input size: {expected_input_size}")
-    else:
-        st.error("Model input shape is not defined.")
+    except Exception as e:
+        print(f"Error during conversion: {e}")
 
-except Exception as e:
-    st.error(f"Error: {e}")
+if __name__ == "__main__":
+    # Define paths for the input .keras model and output .h5 model
+    model_path = r"C:\Users\puter\Downloads\final\data\keraspt1\AisyahSignX59.keras"  # Change this path if needed
+    output_path = r"C:\Users\puter\Downloads\final\data\keraspt1\AisyahSignX59.h5"   # Define output path
+
+    # Convert the model
+    convert_keras_to_h5(model_path, output_path)
 
 # Check the model's input shape to determine the expected input size
 expected_input_size = model.input_shape[1]
