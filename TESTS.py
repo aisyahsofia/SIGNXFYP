@@ -201,134 +201,115 @@ def show_progress(username):
 def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
-    
-   # Load the Keras model
-model = load_model(r"C:\Users\puter\final\data\keras\AisyahSignX59.keras")
 
-# Check the model's input shape to determine the expected input size
-expected_input_size = model.input_shape[1]  # Adjust based on your model's input shape
+    # Load the Keras model
+    model = load_model(r"C:\Users\puter\final\data\keras\AisyahSignX59.keras")
 
-# Initialize video capture
-cap = cv2.VideoCapture(0)
+    # Check the model's input shape to determine the expected input size
+    expected_input_size = model.input_shape[1]  # Adjust based on your model's input shape
 
-# Check if the camera opened successfully
-if not cap.isOpened():
-    print("Error: Could not open the camera.")
-    exit()
+    # Initialize video capture
+    cap = cv2.VideoCapture(0)
 
-# Set up MediaPipe Hands
-mp_hands = mp.solutions.hands
-mp_drawing = mp.solutions.drawing_utils
-mp_drawing_styles = mp.solutions.drawing_styles
+    # Check if the camera opened successfully
+    if not cap.isOpened():
+        st.error("Error: Could not open the camera.")
+        return
 
-hands = mp_hands.Hands(
-    static_image_mode=False,  # Set to False for continuous detection
-    max_num_hands=1,  # Detect one hand at a time for simplicity
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5
-)
+    # Set up MediaPipe Hands
+    mp_hands = mp.solutions.hands
+    mp_drawing = mp.solutions.drawing_utils
+    mp_drawing_styles = mp.solutions.drawing_styles
 
-# Label dictionary for mapping predicted indices to characters, excluding 'J' and 'Z'
-label_dict = {
-    '0': 'A',
-    '1': 'B',
-    '2': 'C',
-    '3': 'D',
-    '4': 'E',
-    '5': 'F',
-    '6': 'G',
-    '7': 'H',
-    '8': 'I',
-    '9': 'K',
-    '10': 'L',
-    '11': 'M',
-    '12': 'N',
-    '13': 'O',
-    '14': 'P',
-    '15': 'Q',
-    '16': 'R',
-    '17': 'S',
-    '18': 'T',
-    '19': 'U',
-    '20': 'V',
-    '21': 'W',
-    '22': 'X',
-    '23': 'Y',
-}
+    hands = mp_hands.Hands(
+        static_image_mode=False,  # Set to False for continuous detection
+        max_num_hands=1,  # Detect one hand at a time for simplicity
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5
+    )
 
-try:
-    while True:
-        # Capture each frame
-        ret, frame = cap.read()
-        if not ret:
-            print("Error: Failed to capture frame.")
-            break
+    # Label dictionary for mapping predicted indices to characters, excluding 'J' and 'Z'
+    label_dict = {
+        '0': 'A', '1': 'B', '2': 'C', '3': 'D', '4': 'E', '5': 'F', '6': 'G',
+        '7': 'H', '8': 'I', '9': 'K', '10': 'L', '11': 'M', '12': 'N', '13': 'O',
+        '14': 'P', '15': 'Q', '16': 'R', '17': 'S', '18': 'T', '19': 'U', '20': 'V',
+        '21': 'W', '22': 'X', '23': 'Y',
+    }
 
-        # Convert frame to RGB for MediaPipe processing
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = hands.process(frame_rgb)
+    try:
+        while True:
+            # Capture each frame
+            ret, frame = cap.read()
+            if not ret:
+                print("Error: Failed to capture frame.")
+                break
 
-        # If hand landmarks are detected
-        if results.multi_hand_landmarks:
-            for hand_landmarks in results.multi_hand_landmarks:
-                # Draw landmarks on the frame
-                mp_drawing.draw_landmarks(
-                    frame,
-                    hand_landmarks,
-                    mp_hands.HAND_CONNECTIONS,
-                    mp_drawing_styles.get_default_hand_landmarks_style(),
-                    mp_drawing_styles.get_default_hand_connections_style()
-                )
+            # Convert frame to RGB for MediaPipe processing
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = hands.process(frame_rgb)
 
-                # Extract normalized landmark coordinates
-                data_aux = []
-                x_ = []
-                y_ = []
-                for landmark in hand_landmarks.landmark:
-                    x_.append(landmark.x)
-                    y_.append(landmark.y)
+            # If hand landmarks are detected
+            if results.multi_hand_landmarks:
+                for hand_landmarks in results.multi_hand_landmarks:
+                    # Draw landmarks on the frame
+                    mp_drawing.draw_landmarks(
+                        frame,
+                        hand_landmarks,
+                        mp_hands.HAND_CONNECTIONS,
+                        mp_drawing_styles.get_default_hand_landmarks_style(),
+                        mp_drawing_styles.get_default_hand_connections_style()
+                    )
 
-                # Create feature vector
-                min_x, min_y = min(x_), min(y_)
-                for landmark in hand_landmarks.landmark:
-                    data_aux.append(landmark.x - min_x)
-                    data_aux.append(landmark.y - min_y)
+                    # Extract normalized landmark coordinates
+                    data_aux = []
+                    x_ = []
+                    y_ = []
+                    for landmark in hand_landmarks.landmark:
+                        x_.append(landmark.x)
+                        y_.append(landmark.y)
 
-                # Ensure correct data format for model prediction
-                if len(data_aux) == expected_input_size:
-                    data_aux = np.asarray(data_aux).reshape(1, -1)
-                    prediction = model.predict(data_aux)
+                    # Create feature vector
+                    min_x, min_y = min(x_), min(y_)
+                    for landmark in hand_landmarks.landmark:
+                        data_aux.append(landmark.x - min_x)
+                        data_aux.append(landmark.y - min_y)
 
-                    # Get predicted class and probability
-                    predicted_class_index = np.argmax(prediction, axis=1)[0]
-                    predicted_probability = prediction[0][predicted_class_index]
+                    # Ensure correct data format for model prediction
+                    if len(data_aux) == expected_input_size:
+                        data_aux = np.asarray(data_aux).reshape(1, -1)
+                        prediction = model.predict(data_aux)
 
-                    if predicted_probability >= 0.3:
-                        predicted_character = label_dict.get(str(predicted_class_index), 'Unknown')
-                    else:
-                        predicted_character = 'Unknown'
+                        # Get predicted class and probability
+                        predicted_class_index = np.argmax(prediction, axis=1)[0]
+                        predicted_probability = prediction[0][predicted_class_index]
 
-                    # Draw prediction on the frame
-                    x1 = int(min(x_) * frame.shape[1]) - 10
-                    y1 = int(min(y_) * frame.shape[0]) - 10
-                    x2 = int(max(x_) * frame.shape[1]) + 10
-                    y2 = int(max(y_) * frame.shape[0]) + 10
+                        if predicted_probability >= 0.3:
+                            predicted_character = label_dict.get(str(predicted_class_index), 'Unknown')
+                        else:
+                            predicted_character = 'Unknown'
 
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (72, 61, 139), 4)
-                    cv2.putText(frame, f'{predicted_character} ({predicted_probability * 100:.2f}%)',
-                                (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.3, (72, 61, 139), 3, cv2.LINE_AA)
+                        # Draw prediction on the frame
+                        x1 = int(min(x_) * frame.shape[1]) - 10
+                        y1 = int(min(y_) * frame.shape[0]) - 10
+                        x2 = int(max(x_) * frame.shape[1]) + 10
+                        y2 = int(max(y_) * frame.shape[0]) + 10
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-        # Display the frame with annotations
-        cv2.imshow('Sign Language Recognition', frame)
+                        cv2.putText(frame, f"Predicted: {predicted_character}", (x1, y1 - 10),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
-        # Exit the loop on 'q' key press
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+            # Show the processed frame
+            cv2.imshow("Sign Detection", frame)
 
-finally:
-    # Release resources
-    cap.release()
-    cv2.destroyAllWindows()
+            # Exit on pressing 'q'
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+    finally:
+        # Release the camera and close the window
+        cap.release()
+        cv2.destroyAllWindows()
+
 
 # Quiz feature
 def quiz():
