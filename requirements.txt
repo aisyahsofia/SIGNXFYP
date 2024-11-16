@@ -3,8 +3,6 @@ streamlit==<TESTS.py>
 opencv-contrib-python
 numpy
 pandas
-libgl1
-libglu1-mesa
 tensorflow
 mediapipe
 streamlit-webrtc
