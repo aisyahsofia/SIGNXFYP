@@ -5,6 +5,9 @@ import random
 import cv2
 import numpy as np
 import os
+from tensorflow.keras.models import load_model
+import mediapipe as mp
+import gdown
 
 
 print(cv2.__version__)
@@ -198,28 +201,51 @@ def show_progress(username):
 def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
-    
-    camera_input = st.camera_input("Capture Image of your Sign")
 
-    if camera_input is not None:
-        image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
+    # Model download from Google Drive
+    gdown.download('https://drive.google.com/uc?id=1yRD3a942y5yID2atOF2o71lLwhOBoqJ-', 'AisyahSignX59.h5', quiet=False)
 
-        # Placeholder for model predictions
-        # You can integrate a machine learning model here for sign recognition
-        # For this example, let's assume the model recognized "Hello"
-        detected_sign = "Hello"  # Placeholder for detected sign
+    # Load the model
+    model = load_model('AisyahSignX59.h5')
 
-        st.image(image, caption="Captured Sign", use_column_width=True)
+    # Setup MediaPipe hands
+    mp_hands = mp.solutions.hands
+    hands = mp_hands.Hands()
+    mp_draw = mp.solutions.drawing_utils
 
-        # Simulate progress tracking for the recognized sign
-        if detected_sign:
-            st.write(f"Detected sign: {detected_sign}")
-            if st.button(f"Mark '{detected_sign}' as learned"):
-                track_progress(st.session_state['username'], detected_sign)
-                st.success(f"'{detected_sign}' marked as learned!")
+    # Open camera feed
+    cap = cv2.VideoCapture(0)
 
-    else:
-        st.error("No image captured yet.")
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            continue
+
+        # Flip the frame horizontally
+        frame = cv2.flip(frame, 1)
+
+        # Convert the frame to RGB
+        img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = hands.process(img_rgb)
+
+        if results.multi_hand_landmarks:
+            for landmarks in results.multi_hand_landmarks:
+                # Draw landmarks on the frame
+                mp_draw.draw_landmarks(frame, landmarks, mp_hands.HAND_CONNECTIONS)
+
+                # Get the landmarks and prepare data for prediction
+                data = np.array(landmarks.landmark).flatten().reshape(1, -1)
+
+                # Make prediction using the loaded model
+                prediction = model.predict(data)
+
+                # Display the prediction result
+                st.write(f"Prediction: {prediction}")
+
+        # Display the frame in Streamlit
+        st.image(frame, channels="BGR", use_column_width=True)
+
+    cap.release()
 
 # Quiz feature
 def quiz():
