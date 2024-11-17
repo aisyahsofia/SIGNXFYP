@@ -215,12 +215,13 @@ def sign_detection():
     hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.5)
     mp_draw = mp.solutions.drawing_utils
 
-    # Start the webcam
-    cap = cv2.VideoCapture(0)  # Use 0 for the default camera
+    # Try opening the camera
+    cap = cv2.VideoCapture(0)  # Default camera
     if not cap.isOpened():
-        st.error("Unable to access the camera")
+        st.error("Unable to access the camera.")
+        st.write("Please check if your webcam is properly connected or if other applications are using it.")
         return
-    
+
     stframe = st.empty()  # Create a placeholder for the webcam feed
     
     while True:
