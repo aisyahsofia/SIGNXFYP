@@ -204,8 +204,8 @@ def sign_detection():
 
     # Download and load model
     if 'model' not in st.session_state:
-        model_url = 'https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/keraspt1/AisyahSignX59.keras'  # Updated model URL
-        model_path = "AisyahSignX59.keras"
+        model_url = 'https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/keraspt1/AisyahSignX59.h5'  # Updated model URL
+        model_path = "AisyahSignX59.h5"
         
         if not os.path.exists(model_path):
             st.write("Downloading model...")
