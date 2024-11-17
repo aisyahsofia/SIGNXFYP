@@ -213,7 +213,7 @@ class DummyModel:
     def predict(self, data):
         return [[0.1, 0.9]]  # Example probabilities
 
-model = SignXModel()
+model = DummyModel()
 label_dict = {0: "A", 1: "B"}  # Replace with your actual label dictionary
 
 # Real-time video detection
