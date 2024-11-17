@@ -233,7 +233,7 @@ label_dict = {
 }
 
 # Load the pre-trained model
-model = load_model("your_model_path_here")  # Replace with your actual model path
+model = load_model("./AisyahSignX100.keras")  # Replace with your actual model path
 
 def sign_detection():
     st.subheader("Real-time Sign Detection")
