@@ -219,6 +219,74 @@ def show_progress(username):
         for idx, row in user_progress.iterrows():
             st.write(f"- {row['phrase']}")
 
+# Load the sign language model
+def load_sign_language_model():
+    model_path = "C:/Users/puter/Downloads/final/data/keras/keras/AisyahSignX59.keras"
+    
+    try:
+        model = load_model(model_path)
+        print("Model loaded successfully!")
+        return model
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        return None
+
+model = load_sign_language_model()
+
+# Initialize MediaPipe hand detector
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands()
+
+# Function to process webcam feed and make predictions
+def process_webcam_feed(model):
+    cap = cv2.VideoCapture(0)  # Open the webcam
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Flip the frame for better visualization
+        frame = cv2.flip(frame, 1)
+
+        # Convert the frame to RGB
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Get hand landmarks
+        results = hands.process(rgb_frame)
+
+        if results.multi_hand_landmarks:
+            for landmarks in results.multi_hand_landmarks:
+                # Draw landmarks on the frame
+                mp.solutions.drawing_utils.draw_landmarks(frame, landmarks, mp_hands.HAND_CONNECTIONS)
+
+                # Preprocess landmarks to match the input shape expected by the model
+                hand_landmarks = np.array([[lm.x, lm.y, lm.z] for lm in landmarks.landmark])
+                hand_landmarks = hand_landmarks.flatten()  # Flatten the landmarks into a 1D array
+                hand_landmarks = np.expand_dims(hand_landmarks, axis=0)  # Add batch dimension
+
+                # Make prediction using the model
+                prediction = model.predict(hand_landmarks)
+
+                # Display prediction on the screen
+                predicted_label = np.argmax(prediction, axis=1)
+                st.write(f"Predicted sign: {predicted_label}")
+
+        # Display the webcam feed in Streamlit
+        st.image(frame, channels="BGR", use_column_width=True)
+
+        # Check for 'q' key press to exit loop
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()  # Release the webcam
+    cv2.destroyAllWindows()
+
+# Use the webcam feed for predictions if the model is loaded
+if model:
+    st.title("Sign Language Recognition using Webcam")
+    process_webcam_feed(model)
+
 # App structure
 def main():
     st.sidebar.title("SignX Menu")
