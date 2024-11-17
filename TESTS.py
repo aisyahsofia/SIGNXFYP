@@ -197,54 +197,55 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
+# Sign Detection and Webcam Feed
 def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
 
-    # Download the model if it's not already present
+    # Download and load model
     if 'model' not in st.session_state:
-        model_url = 'https://drive.google.com/uc?id=1yRD3a942y5yID2atOF2o71lLwhOBoqJ-'  # Google Drive model link
-        model_path = r"C:\Users\puter\Downloads\final\data\keraspt1\AisyahSignX59.keras"
+        model_url = 'https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/keraspt1/AisyahSignX59.keras'  # Updated model URL
+        model_path = "AisyahSignX59.keras"
         
         if not os.path.exists(model_path):
             st.write("Downloading model...")
             
-            # Use requests to download the model
+            # Download model
             with open(model_path, 'wb') as f:
                 f.write(requests.get(model_url).content)
-                
             st.success("Model downloaded successfully!")
-            
-        st.session_state['model'] = load_model(model_path)
         
-    # Start the webcam
+        st.session_state['model'] = load_model(model_path)
+    
+    # Start MediaPipe Hand Detection
     mp_hands = mp.solutions.hands
     hands = mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5)
     cap = cv2.VideoCapture(0)
-    
+
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
             
-        # Convert the BGR frame to RGB
+        # Convert to RGB for MediaPipe
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = hands.process(frame_rgb)
 
+        # If hands are detected, show landmarks
         if results.multi_hand_landmarks:
             for landmarks in results.multi_hand_landmarks:
-                # Landmark data, use for prediction
-                st.write("Hand landmarks detected!")
-                # You can proceed with your ASL model prediction here
-                # model.predict(landmarks)
+                # Display hand landmarks for debugging (optional)
+                for landmark in landmarks.landmark:
+                    # You can use the landmarks for prediction
+                    pass
 
-        # Display the webcam feed
-        cv2.imshow("Sign Detection", frame)
+        # Show webcam feed as an image in Streamlit
+        st.image(frame, channels="BGR", use_column_width=True)
+
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         
     cap.release()
-    cv2.destroyAllWindows()
 
 # Quiz feature
 def quiz():
