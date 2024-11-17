@@ -197,65 +197,88 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
+import time
 import cv2
-import mediapipe as mp
 import numpy as np
 import streamlit as st
-from tensorflow.keras.models import load_model
+import mediapipe as mp
 
-# Load model and labels
-model = load_model("AisyahSignX100.keras")
-label_dict = {str(i): chr(65 + i) for i in range(24) if i != 9}  # A-Y (excluding 'J')
-
-# Mediapipe setup
+# Initialize Mediapipe and model
 mp_hands = mp.solutions.hands
 mp_draw = mp.solutions.drawing_utils
 
+# Dummy model and labels (replace with your trained model and labels)
+class DummyModel:
+    def predict(self, data):
+        return [[0.1, 0.9]]  # Example probabilities
+
+model = DummyModel()
+label_dict = {0: "A", 1: "B"}  # Replace with your actual label dictionary
+
+# Real-time video detection
 def sign_detection():
-    st.title("Real-Time ASL Detection")
+    st.title("Real-Time ASL Sign Detection")
+    st.write("This feature uses your webcam for detecting ASL signs.")
 
     # Access webcam
-    cap = cv2.VideoCapture(2)
-    if not cap.isOpened():
-        st.error("Error: Could not access the camera.")
-        return
-
+    run_detection = st.checkbox("Start Webcam")
     frame_placeholder = st.empty()
 
-    try:
+    if run_detection:
+        cap = cv2.VideoCapture(0)  # Open webcam feed
+
+        if not cap.isOpened():
+            st.error("Error: Could not access the camera.")
+            return
+
         with mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.5) as hands:
-            while True:
+            while run_detection:
                 ret, frame = cap.read()
                 if not ret:
                     st.error("Failed to grab frame.")
                     break
 
+                # Convert frame to RGB for Mediapipe
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 results = hands.process(frame_rgb)
 
+                # If hand landmarks detected
                 if results.multi_hand_landmarks:
                     for hand_landmarks in results.multi_hand_landmarks:
                         mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
-                        # Prepare input for model
-                        data_aux = np.array([[lm.x, lm.y] for lm in hand_landmarks.landmark]).flatten()
-                        data_aux = data_aux.reshape(1, -1)
+                        # Prepare data for prediction
+                        x_ = [lm.x for lm in hand_landmarks.landmark]
+                        y_ = [lm.y for lm in hand_landmarks.landmark]
+                        data_aux = [coord for pair in zip(x_, y_) for coord in pair]
 
+                        # Predict
+                        data_aux = np.array(data_aux).reshape(1, -1)
                         prediction = model.predict(data_aux)
-                        class_index = np.argmax(prediction, axis=1)[0]
-                        confidence = prediction[0][class_index]
+                        predicted_class_index = np.argmax(prediction, axis=1)[0]
+                        predicted_probability = prediction[0][predicted_class_index]
 
-                        if confidence > 0.3:
-                            character = label_dict.get(str(class_index), "Unknown")
+                        # Display prediction
+                        if predicted_probability >= 0.3:
+                            predicted_character = label_dict.get(predicted_class_index, "Unknown")
                         else:
-                            character = "Unknown"
+                            predicted_character = "Unknown"
 
-                        cv2.putText(frame, f"{character} ({confidence:.2f})", (10, 50),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                        # Add text overlay to the frame
+                        cv2.putText(
+                            frame,
+                            f"Prediction: {predicted_character} ({predicted_probability * 100:.2f}%)",
+                            (10, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            1,
+                            (0, 255, 0),
+                            2,
+                        )
 
+                # Display frame in Streamlit
                 frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
                 frame_placeholder.image(frame_bgr, channels="BGR", use_column_width=True)
-    finally:
+
         cap.release()
 
 
