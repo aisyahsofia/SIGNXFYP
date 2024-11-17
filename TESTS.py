@@ -206,48 +206,41 @@ from tensorflow.keras.models import load_model
 import numpy as np
 from PIL import Image
 
+# Sign detection function
 def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
 
-    # Download the model if it's not already present
-    if 'model' not in st.session_state:
-        model_url = 'https://drive.google.com/uc?id=1K5cGREmfJ9DVnT8DQ5p5qnzqnlFrZrvR'
-        model_path = './AisyahSignX100.keras'
+    # Initialize mediapipe hands module
+    mp_hands = mp.solutions.hands
+    hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.5)
+    mp_draw = mp.solutions.drawing_utils
+    
+    # Start the webcam
+    cap = cv2.VideoCapture(1)
+    stframe = st.empty()  # Create a placeholder for the webcam feed
+    
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
         
-        if not os.path.exists(model_path):
-            st.write("Downloading model...")
-            
-            # Use requests to download the model
-            with open(model_path, 'wb') as f:
-                f.write(requests.get(model_url).content)
-                
-            st.success("Model downloaded successfully!")
-            
-        st.session_state['model'] = load_model(model_path)
+        # Flip the frame horizontally for a mirror effect
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame = np.flip(frame, axis=1)
         
-# Start the webcam
-cap = cv2.VideoCapture(1)
-stframe = st.empty()  # Create a placeholder for the webcam feed
+        # Convert the frame to RGB for processing by Mediapipe
+        results = hands.process(frame)
 
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        break
+        # Draw landmarks and connections if hands are detected
+        if results.multi_hand_landmarks:
+            for hand_landmarks in results.multi_hand_landmarks:
+                mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+        
+        # Display the webcam feed with detected signs
+        stframe.image(frame, channels="RGB", use_column_width=True)
 
-    # Convert the frame to Image format that Streamlit can display
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    frame_image = Image.fromarray(frame_rgb)
-
-    # Display the webcam feed on the Streamlit page
-    stframe.image(frame_image, channels="RGB", use_column_width=True)
-
-    # Check for the 'q' key press to stop the loop
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
+    cap.release()
 
 
 # Quiz feature
