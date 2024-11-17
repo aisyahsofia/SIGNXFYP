@@ -217,7 +217,7 @@ def sign_detection():
     mp_draw = mp.solutions.drawing_utils
     
     # Start the webcam
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
     stframe = st.empty()  # Create a placeholder for the webcam feed
     
     while cap.isOpened():
