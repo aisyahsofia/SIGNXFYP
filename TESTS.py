@@ -199,10 +199,7 @@ def show_progress(username):
 
 import streamlit as st
 import cv2
-import os
-import requests
 import mediapipe as mp
-from tensorflow.keras.models import load_model
 import numpy as np
 from PIL import Image
 
@@ -215,38 +212,40 @@ def sign_detection():
     hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.5)
     mp_draw = mp.solutions.drawing_utils
 
-    # Try opening the camera
-    cap = cv2.VideoCapture(0)  # Default camera
+    # Start the webcam
+    cap = cv2.VideoCapture(0)  # Use 0 for the default camera
     if not cap.isOpened():
-        st.error("Unable to access the camera.")
-        st.write("Please check if your webcam is properly connected or if other applications are using it.")
+        st.error("Unable to access the camera")
         return
 
-    stframe = st.empty()  # Create a placeholder for the webcam feed
+    stframe = st.empty()  # Placeholder for the webcam feed
     
-    while True:
+    # Streamlit will update the webcam feed frame-by-frame
+    while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
-            st.error("Failed to grab frame from camera.")
+            st.error("Failed to grab frame from the camera.")
             break
         
         # Flip the frame horizontally for a mirror effect
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame = np.flip(frame, axis=1)
         
-        # Convert the frame to RGB for processing by Mediapipe
+        # Process the frame with Mediapipe
         results = hands.process(frame)
-
-        # Draw landmarks and connections if hands are detected
+        
+        # Draw landmarks if hands are detected
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
                 mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
         
-        # Display the webcam feed with detected signs
+        # Display the updated frame in the Streamlit app
         image = Image.fromarray(frame)
         stframe.image(image, use_column_width=True)
 
+    # Release resources after breaking the loop
     cap.release()
+    hands.close()
 
 
 # Quiz feature
