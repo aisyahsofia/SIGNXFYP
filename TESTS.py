@@ -197,98 +197,120 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
-import streamlit as st
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
 import cv2
+import mediapipe as mp
 import numpy as np
-import os
+from tensorflow.keras.models import load_model
 
 def sign_detection():
-    """Sign Language Detection App (A-Y excluding J and Z)."""
-    st.title("Sign Language Detection App (A-Y, excluding J and Z)")
+    """Sign Language Detection App (A-Y, excluding J and Z)."""
+    # Load the pre-trained model
+    model = load_model(r"C:\Users\puter\final\data\keras\AisyahSignX100.keras")
 
-    # Create or load the model
-    def create_model():
-        """Define a CNN model for sign language classification."""
-        model = Sequential([
-            Conv2D(32, (3, 3), activation='relu', input_shape=(64, 64, 3)),
-            MaxPooling2D(pool_size=(2, 2)),
-            Conv2D(64, (3, 3), activation='relu'),
-            MaxPooling2D(pool_size=(2, 2)),
-            Flatten(),
-            Dense(128, activation='relu'),
-            Dense(24, activation='softmax')  # 24 classes (A-Y, excluding J and Z)
-        ])
-        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-        return model
+    # Check the model's input shape to determine the expected input size
+    expected_input_size = model.input_shape[1]  # Adjust based on your model's input shape
 
-    def load_or_create_model():
-        """Load the model if it exists; otherwise, create a new model."""
-        if os.path.exists('sign_language_model.h5'):
-            model = tf.keras.models.load_model('sign_language_model.h5')
-            st.success("Loaded pre-trained model.")
-        else:
-            model = create_model()
-            st.warning("No pre-trained model found. Created a new model.")
-        return model
+    # Initialize video capture
+    cap = cv2.VideoCapture(0)
 
-    model = load_or_create_model()
+    # Check if the camera opened successfully
+    if not cap.isOpened():
+        print("Error: Could not open the camera.")
+        exit()
 
-    # Gesture mappings
-    gesture_map = {
-        0: 'A', 1: 'B', 2: 'C', 3: 'D', 4: 'E', 5: 'F', 6: 'G',
-        7: 'H', 8: 'I', 9: 'K', 10: 'L', 11: 'M', 12: 'N', 13: 'O',
-        14: 'P', 15: 'Q', 16: 'R', 17: 'S', 18: 'T', 19: 'U',
-        20: 'V', 21: 'W', 22: 'X', 23: 'Y'
+    # Set up MediaPipe Hands
+    mp_hands = mp.solutions.hands
+    mp_drawing = mp.solutions.drawing_utils
+    mp_drawing_styles = mp.solutions.drawing_styles
+
+    hands = mp_hands.Hands(
+        static_image_mode=False,  # Set to False for continuous detection
+        max_num_hands=1,  # Detect one hand at a time for simplicity
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5
+    )
+
+    # Label dictionary for mapping predicted indices to characters, excluding 'J' and 'Z'
+    label_dict = {
+        '0': 'A', '1': 'B', '2': 'C', '3': 'D', '4': 'E', '5': 'F', '6': 'G',
+        '7': 'H', '8': 'I', '9': 'K', '10': 'L', '11': 'M', '12': 'N', '13': 'O',
+        '14': 'P', '15': 'Q', '16': 'R', '17': 'S', '18': 'T', '19': 'U', '20': 'V',
+        '21': 'W', '22': 'X', '23': 'Y',
     }
 
-    def predict_gesture(frame):
-        """Predict the gesture from a camera frame."""
-        resized_frame = cv2.resize(frame, (64, 64))  # Resize to model's input size
-        resized_frame = resized_frame / 255.0  # Normalize
-        prediction = model.predict(np.expand_dims(resized_frame, axis=0))
-        gesture_index = np.argmax(prediction)
-        gesture_text = gesture_map.get(gesture_index, "Unknown gesture")
-        return gesture_text
+    try:
+        while True:
+            # Capture each frame
+            ret, frame = cap.read()
+            if not ret:
+                print("Error: Failed to capture frame.")
+                break
 
-    def text_to_speech(text):
-        """Convert detected text to speech."""
-        tts = gTTS(text=text, lang='en')
-        tts.save("gesture.mp3")
-        os.system("gesture.mp3")
+            # Convert frame to RGB for MediaPipe processing
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = hands.process(frame_rgb)
 
-    # Detection Section
-    st.header("Sign Language Detection")
-    run_camera = st.checkbox("Open Camera")
-    FRAME_WINDOW = st.image([])
+            # If hand landmarks are detected
+            if results.multi_hand_landmarks:
+                for hand_landmarks in results.multi_hand_landmarks:
+                    # Draw landmarks on the frame
+                    mp_drawing.draw_landmarks(
+                        frame,
+                        hand_landmarks,
+                        mp_hands.HAND_CONNECTIONS,
+                        mp_drawing_styles.get_default_hand_landmarks_style(),
+                        mp_drawing_styles.get_default_hand_connections_style()
+                    )
 
-    if run_camera:
-        cap = cv2.VideoCapture(0)  # Use the default camera (adjust index if needed)
+                    # Extract normalized landmark coordinates
+                    data_aux = []
+                    x_ = []
+                    y_ = []
+                    for landmark in hand_landmarks.landmark:
+                        x_.append(landmark.x)
+                        y_.append(landmark.y)
 
-        if cap.isOpened():
-            while run_camera:
-                ret, frame = cap.read()
-                if not ret:
-                    st.error("Failed to access the camera.")
-                    break
+                    # Create feature vector
+                    min_x, min_y = min(x_), min(y_)
+                    for landmark in hand_landmarks.landmark:
+                        data_aux.append(landmark.x - min_x)
+                        data_aux.append(landmark.y - min_y)
 
-                # Display camera feed
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                FRAME_WINDOW.image(frame_rgb)
+                    # Ensure correct data format for model prediction
+                    if len(data_aux) == expected_input_size:
+                        data_aux = np.asarray(data_aux).reshape(1, -1)
+                        prediction = model.predict(data_aux)
 
-                # Predict gesture
-                gesture = predict_gesture(frame_rgb)
-                st.write(f"Detected Gesture: {gesture}")
+                        # Get predicted class and probability
+                        predicted_class_index = np.argmax(prediction, axis=1)[0]
+                        predicted_probability = prediction[0][predicted_class_index]
 
-                # Speech feedback
-                if gesture != "Unknown gesture":
-                    text_to_speech(gesture)
+                        if predicted_probability >= 0.3:
+                            predicted_character = label_dict.get(str(predicted_class_index), 'Unknown')
+                        else:
+                            predicted_character = 'Unknown'
 
-            cap.release()
-        else:
-            st.error("Failed to open the camera.")
+                        # Draw prediction on the frame
+                        x1 = int(min(x_) * frame.shape[1]) - 10
+                        y1 = int(min(y_) * frame.shape[0]) - 10
+                        x2 = int(max(x_) * frame.shape[1]) + 10
+                        y2 = int(max(y_) * frame.shape[0]) + 10
+
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), (72, 61, 139), 4)
+                        cv2.putText(frame, f'{predicted_character} ({predicted_probability * 100:.2f}%)',
+                                    (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.3, (72, 61, 139), 3, cv2.LINE_AA)
+
+            # Display the frame with annotations
+            cv2.imshow('Sign Language Recognition', frame)
+
+            # Exit the loop on 'q' key press
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+    finally:
+        # Release resources
+        cap.release()
+        cv2.destroyAllWindows()
 
 
 # Quiz feature
