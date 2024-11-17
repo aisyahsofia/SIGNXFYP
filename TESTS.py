@@ -197,119 +197,79 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
-import os
-from tensorflow.keras.models import load_model
-import streamlit as st
-import cv2
-import mediapipe as mp
-import numpy as np
-
-# Updated label dictionary
-label_dict = {
-    '0': 'A',
-    '1': 'B',
-    '2': 'C',
-    '3': 'D',
-    '4': 'E',
-    '5': 'F',
-    '6': 'G',
-    '7': 'H',
-    '8': 'I',
-    '9': 'K',
-    '10': 'L',
-    '11': 'M',
-    '12': 'N',
-    '13': 'O',
-    '14': 'P',
-    '15': 'Q',
-    '16': 'R',
-    '17': 'S',
-    '18': 'T',
-    '19': 'U',
-    '20': 'V',
-    '21': 'W',
-    '22': 'X',
-    '23': 'Y',
-}
-
-# Load the pre-trained model
-model = load_model("AisyahSignX100.keras")  # Replace with your actual model path
+import time
 
 def sign_detection():
     st.subheader("Real-time Sign Detection")
     st.write("Point your camera to detect ASL signs in real-time.")
 
     st.title("Webcam Feed")
-video_input = st.camera_input("Take a photo")
-if video_input:
-    st.image(video_input)
+    video_input = st.camera_input("Take a photo")
     
-    # Initialize mediapipe hands module
-    mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.5)
-    mp_draw = mp.solutions.drawing_utils
-
-    # Start capturing video from the camera
-    cap = cv2.VideoCapture(0)
-
-    if not cap.isOpened():
-        st.write("Error: Could not access the camera.")
-        return
-
-    # Create an empty container for updating the frame
-    frame_placeholder = st.empty()
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            st.write("Failed to grab frame.")
-            break
+    if video_input:
+        st.image(video_input)
         
-        # Convert the frame to RGB for mediapipe
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        # Initialize mediapipe hands module
+        mp_hands = mp.solutions.hands
+        hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.5)
+        mp_draw = mp.solutions.drawing_utils
         
-        # Process the frame using Mediapipe
-        results = hands.process(frame_rgb)
-
-        # If hand landmarks are detected, draw them on the frame
-        if results.multi_hand_landmarks:
-            for hand_landmarks in results.multi_hand_landmarks:
-                mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+        # Initialize capture
+        cap = cv2.VideoCapture(0)
+        
+        if not cap.isOpened():
+            st.write("Error: Could not access the camera.")
+            return
+        
+        frame_placeholder = st.empty()
+        
+        # Process a few frames instead of an infinite loop
+        for _ in range(10):  # Adjust this number for how many frames you want to process
+            ret, frame = cap.read()
+            if not ret:
+                st.write("Failed to grab frame.")
+                break
+            
+            # Process frame
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = hands.process(frame_rgb)
+            
+            if results.multi_hand_landmarks:
+                for hand_landmarks in results.multi_hand_landmarks:
+                    mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
                 
-            # Prepare the data for model prediction
-            x_ = []
-            y_ = []
-            data_aux = []
-            for i in range(len(hand_landmarks.landmark)):
-                x = hand_landmarks.landmark[i].x
-                y = hand_landmarks.landmark[i].y
-                x_.append(x)
-                y_.append(y)
-                data_aux.append(x - min(x_))
-                data_aux.append(y - min(y_))
-
-            # Reshape data for prediction
-            data_aux = np.asarray(data_aux).reshape(1, -1)
-            prediction = model.predict(data_aux)
-
-            # Get the predicted class and its probability
-            predicted_class_index = np.argmax(prediction, axis=1)[0]
-            predicted_probability = prediction[0][predicted_class_index]
-
-            # Check if the prediction is above a threshold (e.g., 30%)
-            if predicted_probability >= 0.3:
-                predicted_key = str(predicted_class_index)
-                predicted_character = label_dict.get(predicted_key, 'Unknown')
+                # Prepare data for model prediction (same as before)
+                x_ = []
+                y_ = []
+                data_aux = []
+                for i in range(len(hand_landmarks.landmark)):
+                    x = hand_landmarks.landmark[i].x
+                    y = hand_landmarks.landmark[i].y
+                    x_.append(x)
+                    y_.append(y)
+                    data_aux.append(x - min(x_))
+                    data_aux.append(y - min(y_))
+                
+                data_aux = np.asarray(data_aux).reshape(1, -1)
+                prediction = model.predict(data_aux)
+                
+                predicted_class_index = np.argmax(prediction, axis=1)[0]
+                predicted_probability = prediction[0][predicted_class_index]
+                
+                if predicted_probability >= 0.3:
+                    predicted_key = str(predicted_class_index)
+                    predicted_character = label_dict.get(predicted_key, 'Unknown')
+                else:
+                    predicted_character = 'Unknown'
+                
+                frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                frame_placeholder.image(frame_bgr, caption=f"Prediction: {predicted_character} ({predicted_probability * 100:.2f}%)", channels="BGR")
             else:
-                predicted_character = 'Unknown'
+                frame_placeholder.image(frame, caption="No hand detected.", channels="BGR")
+            
+            time.sleep(0.1)  # Add a small delay to allow for smoother updates
 
-            # Display the prediction and the frame
-            frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)  # Convert back to BGR for Streamlit
-            frame_placeholder.image(frame_bgr, caption=f"Prediction: {predicted_character} ({predicted_probability * 100:.2f}%)", channels="BGR")
-        else:
-            frame_placeholder.image(frame, caption="No hand detected.", channels="BGR")
-
-    cap.release()
+        cap.release()
 
 
 # Quiz feature
