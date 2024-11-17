@@ -197,34 +197,91 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
+import gdown
+import os
+from tensorflow.keras.models import load_model
 import streamlit as st
+import cv2
 import mediapipe as mp
 import numpy as np
-from tensorflow.keras.models import load_model
-from PIL import Image
 
-# Load the Keras model (make sure the path is correct)
-model = load_model(r".\data\keras\compile.keras")
+# Function to download the model from Google Drive
+def download_model():
+    file_id = '1K5cGREmfJ9DVnT8DQ5p5qnzqnlFrZrvR'  # The file ID from your Google Drive link
+    output = './data/keras/compile.keras'  # Path to save the model
+    if not os.path.exists('./data/keras'):
+        os.makedirs('./data/keras')
+    
+    gdown.download(f'https://drive.google.com/uc?id={file_id}', output, quiet=False)
+
+# Load the Keras model (after downloading it)
+def load_trained_model():
+    # Check if the model exists, otherwise download it
+    model_path = './data/keras/compile.keras'
+    if not os.path.exists(model_path):
+        st.write("Model not found. Downloading...")
+        download_model()
+    model = load_model(model_path)
+    return model
+
+# Load the trained model
+model = load_trained_model()
+
+# Updated label dictionary
+label_dict = {
+    '0': 'A',
+    '1': 'B',
+    '2': 'C',
+    '3': 'D',
+    '4': 'E',
+    '5': 'F',
+    '6': 'G',
+    '7': 'H',
+    '8': 'I',
+    '9': 'K',
+    '10': 'L',
+    '11': 'M',
+    '12': 'N',
+    '13': 'O',
+    '14': 'P',
+    '15': 'Q',
+    '16': 'R',
+    '17': 'S',
+    '18': 'T',
+    '19': 'U',
+    '20': 'V',
+    '21': 'W',
+    '22': 'X',
+    '23': 'Y',
+}
 
 def sign_detection():
-    st.subheader("Sign Detection Camera")
-    st.write("Point your camera to detect ASL signs.")
+    st.subheader("Real-time Sign Detection")
+    st.write("Point your camera to detect ASL signs in real-time.")
     
     # Initialize mediapipe hands module
     mp_hands = mp.solutions.hands
     hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.5)
     mp_draw = mp.solutions.drawing_utils
 
-    # Streamlit camera input widget
-    image = st.camera_input("Take a picture")
+    # Start capturing video from the camera
+    cap = cv2.VideoCapture(0)
 
-    if image is not None:
-        # Convert the image to a format suitable for mediapipe processing
-        frame = np.array(image)
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    if not cap.isOpened():
+        st.write("Error: Could not access the camera.")
+        return
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            st.write("Failed to grab frame.")
+            break
         
-        # Process the image using Mediapipe
-        results = hands.process(frame)
+        # Convert the frame to RGB for mediapipe
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+        # Process the frame using Mediapipe
+        results = hands.process(frame_rgb)
 
         # If hand landmarks are detected, draw them on the frame
         if results.multi_hand_landmarks:
@@ -258,10 +315,13 @@ def sign_detection():
             else:
                 predicted_character = 'Unknown'
 
-            # Display the prediction and the image
-            st.image(frame, caption=f"Prediction: {predicted_character} ({predicted_probability * 100:.2f}%)")
+            # Display the prediction and the frame
+            st.image(frame, caption=f"Prediction: {predicted_character} ({predicted_probability * 100:.2f}%)", channels="BGR")
         else:
             st.write("No hand detected.")
+
+    cap.release()
+
 
 
 # Quiz feature
