@@ -197,89 +197,99 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
-import time
+import streamlit as st
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
 import cv2
 import numpy as np
-import streamlit as st
-import mediapipe as mp
+from gtts import gTTS
+import os
 
-# Initialize Mediapipe and model
-mp_hands = mp.solutions.hands
-mp_draw = mp.solutions.drawing_utils
-
-# Dummy model and labels (replace with your trained model and labels)
-class DummyModel:
-    def predict(self, data):
-        return [[0.1, 0.9]]  # Example probabilities
-
-model = DummyModel()
-label_dict = {0: "A", 1: "B"}  # Replace with your actual label dictionary
-
-# Real-time video detection
 def sign_detection():
-    st.title("Real-Time ASL Sign Detection")
-    st.write("This feature uses your webcam for detecting ASL signs.")
+    """Sign Language Detection App (A-Y excluding J and Z)."""
+    st.title("Sign Language Detection App (A-Y, excluding J and Z)")
 
-    # Access webcam
-    run_detection = st.checkbox("Start Webcam")
-    frame_placeholder = st.empty()
+    # Create or load the model
+    def create_model():
+        """Define a CNN model for sign language classification."""
+        model = Sequential([
+            Conv2D(32, (3, 3), activation='relu', input_shape=(64, 64, 3)),
+            MaxPooling2D(pool_size=(2, 2)),
+            Conv2D(64, (3, 3), activation='relu'),
+            MaxPooling2D(pool_size=(2, 2)),
+            Flatten(),
+            Dense(128, activation='relu'),
+            Dense(24, activation='softmax')  # 24 classes (A-Y, excluding J and Z)
+        ])
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        return model
 
-    if run_detection:
-        cap = cv2.VideoCapture(0)  # Open webcam feed
+    def load_or_create_model():
+        """Load the model if it exists; otherwise, create a new model."""
+        if os.path.exists('sign_language_model.h5'):
+            model = tf.keras.models.load_model('sign_language_model.h5')
+            st.success("Loaded pre-trained model.")
+        else:
+            model = create_model()
+            st.warning("No pre-trained model found. Created a new model.")
+        return model
 
-        if not cap.isOpened():
-            st.error("Error: Could not access the camera.")
-            return
+    model = load_or_create_model()
 
-        with mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.5) as hands:
-            while run_detection:
+    # Gesture mappings
+    gesture_map = {
+        0: 'A', 1: 'B', 2: 'C', 3: 'D', 4: 'E', 5: 'F', 6: 'G',
+        7: 'H', 8: 'I', 9: 'K', 10: 'L', 11: 'M', 12: 'N', 13: 'O',
+        14: 'P', 15: 'Q', 16: 'R', 17: 'S', 18: 'T', 19: 'U',
+        20: 'V', 21: 'W', 22: 'X', 23: 'Y'
+    }
+
+    def predict_gesture(frame):
+        """Predict the gesture from a camera frame."""
+        resized_frame = cv2.resize(frame, (64, 64))  # Resize to model's input size
+        resized_frame = resized_frame / 255.0  # Normalize
+        prediction = model.predict(np.expand_dims(resized_frame, axis=0))
+        gesture_index = np.argmax(prediction)
+        gesture_text = gesture_map.get(gesture_index, "Unknown gesture")
+        return gesture_text
+
+    def text_to_speech(text):
+        """Convert detected text to speech."""
+        tts = gTTS(text=text, lang='en')
+        tts.save("gesture.mp3")
+        os.system("gesture.mp3")
+
+    # Detection Section
+    st.header("Sign Language Detection")
+    run_camera = st.checkbox("Open Camera")
+    FRAME_WINDOW = st.image([])
+
+    if run_camera:
+        cap = cv2.VideoCapture(0)  # Use the default camera (adjust index if needed)
+
+        if cap.isOpened():
+            while run_camera:
                 ret, frame = cap.read()
                 if not ret:
-                    st.error("Failed to grab frame.")
+                    st.error("Failed to access the camera.")
                     break
 
-                # Convert frame to RGB for Mediapipe
+                # Display camera feed
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                results = hands.process(frame_rgb)
+                FRAME_WINDOW.image(frame_rgb)
 
-                # If hand landmarks detected
-                if results.multi_hand_landmarks:
-                    for hand_landmarks in results.multi_hand_landmarks:
-                        mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+                # Predict gesture
+                gesture = predict_gesture(frame_rgb)
+                st.write(f"Detected Gesture: {gesture}")
 
-                        # Prepare data for prediction
-                        x_ = [lm.x for lm in hand_landmarks.landmark]
-                        y_ = [lm.y for lm in hand_landmarks.landmark]
-                        data_aux = [coord for pair in zip(x_, y_) for coord in pair]
+                # Speech feedback
+                if gesture != "Unknown gesture":
+                    text_to_speech(gesture)
 
-                        # Predict
-                        data_aux = np.array(data_aux).reshape(1, -1)
-                        prediction = model.predict(data_aux)
-                        predicted_class_index = np.argmax(prediction, axis=1)[0]
-                        predicted_probability = prediction[0][predicted_class_index]
-
-                        # Display prediction
-                        if predicted_probability >= 0.3:
-                            predicted_character = label_dict.get(predicted_class_index, "Unknown")
-                        else:
-                            predicted_character = "Unknown"
-
-                        # Add text overlay to the frame
-                        cv2.putText(
-                            frame,
-                            f"Prediction: {predicted_character} ({predicted_probability * 100:.2f}%)",
-                            (10, 50),
-                            cv2.FONT_HERSHEY_SIMPLEX,
-                            1,
-                            (0, 255, 0),
-                            2,
-                        )
-
-                # Display frame in Streamlit
-                frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                frame_placeholder.image(frame_bgr, channels="BGR", use_column_width=True)
-
-        cap.release()
+            cap.release()
+        else:
+            st.error("Failed to open the camera.")
 
 
 # Quiz feature
