@@ -226,41 +226,31 @@ def sign_detection():
             
         st.session_state['model'] = load_model(model_path)
         
-    # Start the webcam
-    mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5)
-    cap = cv2.VideoCapture(0)
-    
-    stframe = st.empty()  # Create a placeholder for the webcam feed
-    
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-            
-        # Convert the BGR frame to RGB
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = hands.process(frame_rgb)
+st.subheader("Sign Detection Camera")
+st.write("Point your camera to detect ASL signs.")
 
-        if results.multi_hand_landmarks:
-            for landmarks in results.multi_hand_landmarks:
-                # Landmark data, use for prediction
-                st.write("Hand landmarks detected!")
-                # You can proceed with your ASL model prediction here
-                # model.predict(landmarks)
+# Start the webcam
+cap = cv2.VideoCapture(1)
+stframe = st.empty()  # Create a placeholder for the webcam feed
 
-        # Convert the frame to Image format that Streamlit can display
-        frame_image = Image.fromarray(frame)
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret:
+        break
 
-        # Display the webcam feed on the Streamlit page
-        stframe.image(frame_image, channels="BGR", use_column_width=True)
+    # Convert the frame to Image format that Streamlit can display
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    frame_image = Image.fromarray(frame_rgb)
 
-        # Check for the 'q' key press to stop the loop
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+    # Display the webcam feed on the Streamlit page
+    stframe.image(frame_image, channels="RGB", use_column_width=True)
 
-    cap.release()
-    cv2.destroyAllWindows()
+    # Check for the 'q' key press to stop the loop
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
 
 
 # Quiz feature
