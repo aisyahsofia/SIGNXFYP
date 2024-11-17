@@ -206,23 +206,27 @@ from tensorflow.keras.models import load_model
 import numpy as np
 from PIL import Image
 
-# Sign detection function
 def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
-
+    
     # Initialize mediapipe hands module
     mp_hands = mp.solutions.hands
     hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.5)
     mp_draw = mp.solutions.drawing_utils
-    
+
     # Start the webcam
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(0)  # Use 0 for the default camera
+    if not cap.isOpened():
+        st.error("Unable to access the camera")
+        return
+    
     stframe = st.empty()  # Create a placeholder for the webcam feed
     
-    while cap.isOpened():
+    while True:
         ret, frame = cap.read()
         if not ret:
+            st.error("Failed to grab frame from camera.")
             break
         
         # Flip the frame horizontally for a mirror effect
@@ -238,7 +242,8 @@ def sign_detection():
                 mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
         
         # Display the webcam feed with detected signs
-        stframe.image(frame, channels="RGB", use_column_width=True)
+        image = Image.fromarray(frame)
+        stframe.image(image, use_column_width=True)
 
     cap.release()
 
