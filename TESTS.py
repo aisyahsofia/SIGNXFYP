@@ -300,7 +300,7 @@ def quiz():
             st.session_state['question_data'] = ASL_ALPHABET
 
 
-# Feedback system
+# Feedback system (continued)
 def feedback():
     st.subheader("Feedback")
     
@@ -308,45 +308,74 @@ def feedback():
     rating = st.slider("Please rate your experience:", 1, 5, 3)  # Default to 3 (neutral)
     
     # Feedback text input
-    feedback_text = st.text_area("Please provide your feedback or suggestions:")
-    
+    feedback_text = st.text_area("Please provide your feedback:", "")
+
     if st.button("Submit Feedback"):
         if feedback_text:
-            st.success(f"Thank you for your feedback! You rated us {rating} out of 5.")
-            # You can add logic here to save the feedback with the rating, e.g., saving to a CSV or a database.
+            # Save feedback (you can modify this to save feedback in a database or file)
+            feedback_data = pd.DataFrame([[st.session_state['username'], rating, feedback_text]],
+                                         columns=["username", "rating", "feedback"])
+            try:
+                feedback_data_existing = pd.read_csv("feedback.csv")
+                feedback_data = pd.concat([feedback_data_existing, feedback_data], ignore_index=True)
+            except FileNotFoundError:
+                pass
+            feedback_data.to_csv("feedback.csv", index=False)
+            st.success("Thank you for your feedback!")
         else:
-            st.error("Please provide your feedback text.")
-    
+            st.error("Please provide feedback in the text area.")
 
-# Main app flow
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-
-if not st.session_state['logged_in']:
-    st.sidebar.title("SignX: Next-Gen Technology for Deaf Communications")
-    login_option = st.sidebar.selectbox("Login or Sign Up", ["Login", "Sign Up"])
-
-    if login_option == "Login":
-        login()
-    else:
-        sign_up()
-else:
-    st.sidebar.title(f"Welcome, {st.session_state['username']}")
-    action = st.sidebar.selectbox("Action", ["Training", "ASL Alphabet", "Your Progress", "Quiz", "Sign Detection", "Feedback", "Logout"])
-
-    if action == "Training":
-        training()
-    elif action == "ASL Alphabet":
-        asl_alphabet_training()
-    elif action == "Your Progress":
-        show_progress(st.session_state['username'])
-    elif action == "Quiz":
-        quiz()
-    elif action == "Sign Detection":
-        sign_detection()
-    elif action == "Feedback":
-        feedback()
-    elif action == "Logout":
+# Main page function to tie all the modules together
+def main():
+    # Initialize session states
+    if 'logged_in' not in st.session_state:
         st.session_state['logged_in'] = False
-        del st.session_state['username']
-        st.write("You have been logged out.")
+    
+    if 'username' not in st.session_state:
+        st.session_state['username'] = ""
+    
+    # Sidebar for navigation
+    st.sidebar.title("SignX: Next-Gen Technology for Deaf Communications")
+    menu = ["Login", "Sign Up", "Training", "Alphabet Training", "Progress", "Sign Detection", "Quiz", "Feedback"]
+    choice = st.sidebar.selectbox("Select an option", menu)
+    
+    # Navigation through the app
+    if choice == "Login":
+        login()
+    elif choice == "Sign Up":
+        sign_up()
+    elif choice == "Training":
+        if st.session_state['logged_in']:
+            training()
+        else:
+            st.warning("Please log in first.")
+    elif choice == "Alphabet Training":
+        if st.session_state['logged_in']:
+            asl_alphabet_training()
+        else:
+            st.warning("Please log in first.")
+    elif choice == "Progress":
+        if st.session_state['logged_in']:
+            show_progress(st.session_state['username'])
+        else:
+            st.warning("Please log in first.")
+    elif choice == "Sign Detection":
+        if st.session_state['logged_in']:
+            sign_detection()
+        else:
+            st.warning("Please log in first.")
+    elif choice == "Quiz":
+        if st.session_state['logged_in']:
+            quiz()
+        else:
+            st.warning("Please log in first.")
+    elif choice == "Feedback":
+        if st.session_state['logged_in']:
+            feedback()
+        else:
+            st.warning("Please log in first.")
+
+# Run the app
+if __name__ == "__main__":
+    main()
+
