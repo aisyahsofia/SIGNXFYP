@@ -118,7 +118,7 @@ model = load_sign_language_model()
 
 # Use the model for predictions if successfully loaded
 if model:
-    input_data = # prepare your input data here
+    input_data = np.expand_dims(image_normalized, axis=0)
     predictions = model.predict(input_data)
     print(predictions)
 
