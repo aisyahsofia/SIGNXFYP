@@ -203,7 +203,7 @@ def sign_detection():
 
     # Download the model if it's not already present
     if 'model' not in st.session_state:
-        model_url = 'https://drive.google.com/uc?id=1-2H9LfJ56sSuwq-uGH7eV0SldcfQUZXt'
+        model_url = 'https://drive.google.com/uc?id=1yRD3a942y5yID2atOF2o71lLwhOBoqJ-'  # Google Drive model link
         model_path = './sign_detection_model.h5'
         
         if not os.path.exists(model_path):
