@@ -238,6 +238,11 @@ model = load_model("AisyahSignX100.keras")  # Replace with your actual model pat
 def sign_detection():
     st.subheader("Real-time Sign Detection")
     st.write("Point your camera to detect ASL signs in real-time.")
+
+    st.title("Webcam Feed")
+video_input = st.camera_input("Take a photo")
+if video_input:
+    st.image(video_input)
     
     # Initialize mediapipe hands module
     mp_hands = mp.solutions.hands
