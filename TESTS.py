@@ -7,7 +7,7 @@ import numpy as np
 import os
 from tensorflow.keras.models import load_model
 import mediapipe as mp
-import wget  # Added wget for downloading files
+import requests
 
 print(cv2.__version__)
 
@@ -195,7 +195,6 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
-# Camera feature for sign detection
 def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
@@ -207,8 +206,23 @@ def sign_detection():
         
         if not os.path.exists(model_path):
             st.write("Downloading model...")
-            wget.download(model_url, model_path)  # Use wget instead of gdown
-            st.write("Model downloaded!")
+            
+            # Use requests to download the model
+            try:
+                # Send a GET request to download the file
+                response = requests.get(model_url, stream=True)
+                
+                # Check if the request was successful
+                if response.status_code == 200:
+                    with open(model_path, 'wb') as file:
+                        for chunk in response.iter_content(chunk_size=1024):
+                            if chunk:
+                                file.write(chunk)
+                    st.write("Model downloaded successfully!")
+                else:
+                    st.error("Failed to download model. Status code: {}".format(response.status_code))
+            except requests.exceptions.RequestException as e:
+                st.error(f"An error occurred while downloading the model: {e}")
         
         st.session_state.model = load_model(model_path)
     
