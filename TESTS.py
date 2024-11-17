@@ -197,15 +197,30 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
+import zipfile
+import os
 import cv2
 import mediapipe as mp
 import numpy as np
 from tensorflow.keras.models import load_model
 
+def extract_model_from_zip(zip_path, extract_to_path):
+    """Extracts the model file from a zip archive."""
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall(extract_to_path)
+
 def sign_detection():
     """Sign Language Detection App (A-Y, excluding J and Z)."""
+    # Define the zip file and extraction path
+    zip_path = r"C:\Users\puter\final\data\keras\AisyahSignX100.zip"  # Path to the zip file
+    extract_to_path = r"C:\Users\puter\final\data\keras\"  # Folder to extract the model file
+
+    # Extract the model from the zip file
+    extract_model_from_zip(zip_path, extract_to_path)
+
     # Load the pre-trained model
-    model = load_model(r"C:\Users\puter\final\data\keras\AisyahSignX100.keras")
+    model_path = os.path.join(extract_to_path, "AisyahSignX100.keras")
+    model = load_model(model_path)
 
     # Check the model's input shape to determine the expected input size
     expected_input_size = model.input_shape[1]  # Adjust based on your model's input shape
@@ -311,6 +326,7 @@ def sign_detection():
         # Release resources
         cap.release()
         cv2.destroyAllWindows()
+
 
 
 # Quiz feature
