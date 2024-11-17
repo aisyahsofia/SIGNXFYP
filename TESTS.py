@@ -203,8 +203,8 @@ def sign_detection():
 
     # Download the model if it's not already present
     if 'model' not in st.session_state:
-        model_url = 'https://drive.google.com/uc?id=1-2H9LfJ56sSuwq-uGH7eV0SldcfQUZXt'
-        model_path = './sign_detection_model.h5'
+        model_url = 'https://drive.google.com/uc?id=1K5cGREmfJ9DVnT8DQ5p5qnzqnlFrZrvR'
+        model_path = './AisyahSignX100.keras'
         
         if not os.path.exists(model_path):
             st.write("Downloading model...")
