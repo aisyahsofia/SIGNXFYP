@@ -197,35 +197,12 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
-import gdown
 import os
 from tensorflow.keras.models import load_model
 import streamlit as st
 import cv2
 import mediapipe as mp
 import numpy as np
-
-# Function to download the model from Google Drive
-def download_model():
-    file_id = '1K5cGREmfJ9DVnT8DQ5p5qnzqnlFrZrvR'  # The file ID from your Google Drive link
-    output = './data/keras/compile.keras'  # Path to save the model
-    if not os.path.exists('./data/keras'):
-        os.makedirs('./data/keras')
-    
-    gdown.download(f'https://drive.google.com/uc?id={file_id}', output, quiet=False)
-
-# Load the Keras model (after downloading it)
-def load_trained_model():
-    # Check if the model exists, otherwise download it
-    model_path = './data/keras/compile.keras'
-    if not os.path.exists(model_path):
-        st.write("Model not found. Downloading...")
-        download_model()
-    model = load_model(model_path)
-    return model
-
-# Load the trained model
-model = load_trained_model()
 
 # Updated label dictionary
 label_dict = {
@@ -255,6 +232,9 @@ label_dict = {
     '23': 'Y',
 }
 
+# Load the pre-trained model
+model = load_model("your_model_path_here")  # Replace with your actual model path
+
 def sign_detection():
     st.subheader("Real-time Sign Detection")
     st.write("Point your camera to detect ASL signs in real-time.")
@@ -270,6 +250,9 @@ def sign_detection():
     if not cap.isOpened():
         st.write("Error: Could not access the camera.")
         return
+
+    # Create an empty container for updating the frame
+    frame_placeholder = st.empty()
 
     while True:
         ret, frame = cap.read()
@@ -316,12 +299,12 @@ def sign_detection():
                 predicted_character = 'Unknown'
 
             # Display the prediction and the frame
-            st.image(frame, caption=f"Prediction: {predicted_character} ({predicted_probability * 100:.2f}%)", channels="BGR")
+            frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)  # Convert back to BGR for Streamlit
+            frame_placeholder.image(frame_bgr, caption=f"Prediction: {predicted_character} ({predicted_probability * 100:.2f}%)", channels="BGR")
         else:
-            st.write("No hand detected.")
+            frame_placeholder.image(frame, caption="No hand detected.", channels="BGR")
 
     cap.release()
-
 
 
 # Quiz feature
