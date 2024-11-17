@@ -199,10 +199,14 @@ def show_progress(username):
 
 import streamlit as st
 import cv2
+import os
+import requests
 import mediapipe as mp
+from tensorflow.keras.models import load_model
 import numpy as np
 from PIL import Image
 
+# Function to handle sign language detection
 def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
@@ -217,35 +221,82 @@ def sign_detection():
     if not cap.isOpened():
         st.error("Unable to access the camera")
         return
-
-    stframe = st.empty()  # Placeholder for the webcam feed
     
-    # Streamlit will update the webcam feed frame-by-frame
-    while cap.isOpened():
+    stframe = st.empty()  # Create a placeholder for the webcam feed
+    
+    # Load the Keras model
+    model = load_model(r"./data/keras/compile.keras")
+
+    # Initialize list for hand landmarks
+    x_ = []
+    y_ = []
+    label_dict = {}  # Update with actual label dictionary if available
+    
+    while True:
         ret, frame = cap.read()
         if not ret:
-            st.error("Failed to grab frame from the camera.")
+            st.error("Failed to grab frame from camera.")
             break
         
         # Flip the frame horizontally for a mirror effect
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame = np.flip(frame, axis=1)
         
-        # Process the frame with Mediapipe
+        # Convert the frame to RGB for processing by Mediapipe
         results = hands.process(frame)
-        
-        # Draw landmarks if hands are detected
+
+        # Initialize data for sign language prediction
+        data_aux = []
+
+        # Draw landmarks and connections if hands are detected
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
                 mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+
+                # Extract hand landmarks for prediction
+                for i in range(len(hand_landmarks.landmark)):
+                    x = hand_landmarks.landmark[i].x
+                    y = hand_landmarks.landmark[i].y
+                    x_.append(x)
+                    y_.append(y)
+
+                # Normalize the hand landmarks data
+                for i in range(len(hand_landmarks.landmark)):
+                    x = hand_landmarks.landmark[i].x
+                    y = hand_landmarks.landmark[i].y
+                    data_aux.append(x - min(x_))
+                    data_aux.append(y - min(y_))
+
+            # Prepare the data for prediction
+            data_aux = np.asarray(data_aux).reshape(1, -1)  # Reshape for the model input
+            prediction = model.predict(data_aux)
+
+            # Get the predicted class and its probability
+            predicted_class_index = np.argmax(prediction, axis=1)[0]
+            predicted_probability = prediction[0][predicted_class_index]
+
+            # Check if the probability is above a threshold
+            if predicted_probability >= 0.3:
+                predicted_key = str(predicted_class_index)
+                predicted_character = label_dict.get(predicted_key, 'Unknown')
+            else:
+                predicted_character = 'Unknown'
+
+            # Display the prediction on the frame
+            x1 = int(min(x_) * frame.shape[1]) - 10
+            y1 = int(min(y_) * frame.shape[0]) - 10
+            x2 = int(max(x_) * frame.shape[1]) - 10
+            y2 = int(max(y_) * frame.shape[0]) - 10
+
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 75, 255), 4)
+            cv2.putText(frame, f'{predicted_character} ({predicted_probability * 100:.2f}%)', 
+                        (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.3, (255, 75, 255), 3, cv2.LINE_AA)
         
-        # Display the updated frame in the Streamlit app
+        # Display the webcam feed with predictions
         image = Image.fromarray(frame)
         stframe.image(image, use_column_width=True)
 
-    # Release resources after breaking the loop
-    cap.release()
-    hands.close()
+    cap.release()  # Release the webcam
 
 
 # Quiz feature
