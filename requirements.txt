@@ -6,4 +6,5 @@ pandas
 tensorflow
 mediapipe
 streamlit-webrtc
+--upgrade pip
 gdown
