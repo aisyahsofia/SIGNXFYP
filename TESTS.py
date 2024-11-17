@@ -203,7 +203,6 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
 import cv2
 import numpy as np
-from gtts import gTTS
 import os
 
 def sign_detection():
