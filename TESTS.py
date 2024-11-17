@@ -205,7 +205,7 @@ from tensorflow.keras.models import load_model
 from PIL import Image
 
 # Load the Keras model
-model = load_model(r"C:\final\data\keras\AisyahSignX100.keras")
+model = load_model(r"./final\data\keras\AisyahSignX100.keras")
 
 # Check the model's input shape to determine the expected input size
 expected_input_size = model.input_shape[1]  # Adjust based on your model's input shape
