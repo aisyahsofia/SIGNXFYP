@@ -213,7 +213,7 @@ def sign_detection():
     """Sign Language Detection App (A-Y, excluding J and Z)."""
     # Define the zip file and extraction path
     zip_path = r"C:\Users\puter\final\data\keras\AisyahSignX100.zip"  # Path to the zip file
-    extract_to_path = r"C:\Users\puter\final\data\keras\"  # Folder to extract the model file
+    extract_to_path = r"C:\Users\puter\final\data\keras\AisyahSignX100.keras"  # Folder to extract the model file
 
     # Extract the model from the zip file
     extract_model_from_zip(zip_path, extract_to_path)
