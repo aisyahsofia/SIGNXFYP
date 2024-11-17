@@ -197,6 +197,15 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
+import streamlit as st
+import cv2
+import os
+import requests
+import mediapipe as mp
+from tensorflow.keras.models import load_model
+import numpy as np
+from PIL import Image
+
 def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
@@ -222,6 +231,8 @@ def sign_detection():
     hands = mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5)
     cap = cv2.VideoCapture(0)
     
+    stframe = st.empty()  # Create a placeholder for the webcam feed
+    
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
@@ -238,11 +249,16 @@ def sign_detection():
                 # You can proceed with your ASL model prediction here
                 # model.predict(landmarks)
 
-        # Display the webcam feed
-        cv2.imshow("Sign Detection", frame)
+        # Convert the frame to Image format that Streamlit can display
+        frame_image = Image.fromarray(frame)
+
+        # Display the webcam feed on the Streamlit page
+        stframe.image(frame_image, channels="BGR", use_column_width=True)
+
+        # Check for the 'q' key press to stop the loop
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-        
+
     cap.release()
     cv2.destroyAllWindows()
 
