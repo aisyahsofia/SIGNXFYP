@@ -226,9 +226,6 @@ def sign_detection():
             
         st.session_state['model'] = load_model(model_path)
         
-st.subheader("Sign Detection Camera")
-st.write("Point your camera to detect ASL signs.")
-
 # Start the webcam
 cap = cv2.VideoCapture(1)
 stframe = st.empty()  # Create a placeholder for the webcam feed
