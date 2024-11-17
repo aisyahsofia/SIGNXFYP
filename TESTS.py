@@ -350,5 +350,5 @@ else:
         st.write("You have been logged out.")
 # Run the app
 if __name__ == "__main__":
-    main()
+main()
 
