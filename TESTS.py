@@ -198,7 +198,6 @@ def show_progress(username):
         st.table(user_progress)
 
 import time
-
 import cv2
 import numpy as np
 import streamlit as st
@@ -217,7 +216,7 @@ model = DummyModel()
 label_dict = {0: "A", 1: "B"}  # Replace with your actual label dictionary
 
 # Real-time video detection
-def real_time_detection():
+def sign_detection():
     st.title("Real-Time ASL Sign Detection")
     st.write("This feature uses your webcam for detecting ASL signs.")
 
