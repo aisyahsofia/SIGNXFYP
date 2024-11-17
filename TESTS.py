@@ -348,7 +348,3 @@ else:
         st.session_state['logged_in'] = False
         del st.session_state['username']
         st.write("You have been logged out.")
-# Run the app
-if __name__ == "__main__":
-main()
-
