@@ -9,7 +9,9 @@ from tensorflow.keras.models import load_model
 import mediapipe as mp
 import requests
 
+
 print(cv2.__version__)
+
 
 # File paths
 USERS_FILE = "users.csv"
@@ -208,75 +210,142 @@ def sign_detection():
             st.write("Downloading model...")
             
             # Use requests to download the model
-            try:
-                # Send a GET request to download the file
-                response = requests.get(model_url, stream=True)
+            with open(model_path, 'wb') as f:
+                f.write(requests.get(model_url).content)
                 
-                # Check if the request was successful
-                if response.status_code == 200:
-                    with open(model_path, 'wb') as file:
-                        for chunk in response.iter_content(chunk_size=1024):
-                            if chunk:
-                                file.write(chunk)
-                    st.write("Model downloaded successfully!")
-                else:
-                    st.error("Failed to download model. Status code: {}".format(response.status_code))
-            except requests.exceptions.RequestException as e:
-                st.error(f"An error occurred while downloading the model: {e}")
+            st.success("Model downloaded successfully!")
+            
+        st.session_state['model'] = load_model(model_path)
         
-        st.session_state.model = load_model(model_path)
-    
-    # Initialize MediaPipe for hand detection
+    # Start the webcam
     mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands()
-    mp_draw = mp.solutions.drawing_utils
-
+    hands = mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5)
     cap = cv2.VideoCapture(0)
-
-    while True:
+    
+    while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
-        
+            
+        # Convert the BGR frame to RGB
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = hands.process(frame_rgb)
-        
+
         if results.multi_hand_landmarks:
             for landmarks in results.multi_hand_landmarks:
-                mp_draw.draw_landmarks(frame, landmarks, mp_hands.HAND_CONNECTIONS)
-            
-        st.image(frame, channels="BGR", use_column_width=True)
-    
+                # Landmark data, use for prediction
+                st.write("Hand landmarks detected!")
+                # You can proceed with your ASL model prediction here
+                # model.predict(landmarks)
+
+        # Display the webcam feed
+        cv2.imshow("Sign Detection", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        
     cap.release()
+    cv2.destroyAllWindows()
 
-def main():
-    st.title("SignX: ASL Learning and Detection")
+# Quiz feature
+def quiz():
+    st.subheader("Sign Language Quiz")
+
+    # Initialize quiz type and question if not set
+    if 'quiz_type' not in st.session_state:
+        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
+
+    if 'current_question' not in st.session_state:
+        if st.session_state['quiz_type'] == 'word':
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
+        else:
+            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
+            st.session_state['question_data'] = ASL_ALPHABET
+
+    # Display current question and video
+    question = st.session_state['current_question']
+    question_data = st.session_state['question_data']
+    st.write("What does this sign mean?")
+    st.video(question_data[question])
+
+    # Display answer input and Submit button
+    answer = st.text_input("Your answer")
+
+    if 'submitted' not in st.session_state:
+        st.session_state['submitted'] = False
+
+    # Show feedback after Submit
+    if st.button("Submit") and not st.session_state['submitted']:
+        if answer.strip().lower() == question.lower():
+            st.success("Correct!")
+            track_progress(st.session_state['username'], question)
+        else:
+            st.error(f"Incorrect! The correct answer was '{question}'.")
+
+        st.session_state['submitted'] = True  # Set submitted to True after submission
+
+    # Show Next button after feedback is given
+    if st.session_state['submitted'] and st.button("Next"):
+        # Reset submitted state
+        st.session_state['submitted'] = False
+
+        # Select a new question and type
+        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
+        if st.session_state['quiz_type'] == 'word':
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
+        else:
+            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
+            st.session_state['question_data'] = ASL_ALPHABET
+
+
+# Feedback system
+def feedback():
+    st.subheader("Feedback")
     
-    if 'logged_in' not in st.session_state:
-        st.session_state['logged_in'] = False
+    # Slider for rating (1-5 scale)
+    rating = st.slider("Please rate your experience:", 1, 5, 3)  # Default to 3 (neutral)
     
-    if st.session_state['logged_in']:
-        username = st.session_state['username']
-        st.sidebar.title(f"Welcome, {username}")
-        
-        option = st.sidebar.selectbox("Choose an option", ["Sign Language Training", "ASL Alphabet", "Progress", "Sign Detection"])
-        
-        if option == "Sign Language Training":
-            training()
-        elif option == "ASL Alphabet":
-            asl_alphabet_training()
-        elif option == "Progress":
-            show_progress(username)
-        elif option == "Sign Detection":
-            sign_detection()
-        
+    # Feedback text input
+    feedback_text = st.text_area("Please provide your feedback or suggestions:")
+    
+    if st.button("Submit Feedback"):
+        if feedback_text:
+            st.success(f"Thank you for your feedback! You rated us {rating} out of 5.")
+            # You can add logic here to save the feedback with the rating, e.g., saving to a CSV or a database.
+        else:
+            st.error("Please provide your feedback text.")
+    
+
+# Main app flow
+if 'logged_in' not in st.session_state:
+    st.session_state['logged_in'] = False
+
+if not st.session_state['logged_in']:
+    st.sidebar.title("SignX: Next-Gen Technology for Deaf Communications")
+    login_option = st.sidebar.selectbox("Login or Sign Up", ["Login", "Sign Up"])
+
+    if login_option == "Login":
+        login()
     else:
-        option = st.sidebar.selectbox("Login or Sign Up", ["Login", "Sign Up"])
-        
-        if option == "Login":
-            login()
-        elif option == "Sign Up":
-            sign_up()
+        sign_up()
+else:
+    st.sidebar.title(f"Welcome, {st.session_state['username']}")
+    action = st.sidebar.selectbox("Action", ["Training", "ASL Alphabet", "Your Progress", "Quiz", "Sign Detection", "Feedback", "Logout"])
 
-if __name__ == "__main__":
-    main()
+    if action == "Training":
+        training()
+    elif action == "ASL Alphabet":
+        asl_alphabet_training()
+    elif action == "Your Progress":
+        show_progress(st.session_state['username'])
+    elif action == "Quiz":
+        quiz()
+    elif action == "Sign Detection":
+        sign_detection()
+    elif action == "Feedback":
+        feedback()
+    elif action == "Logout":
+        st.session_state['logged_in'] = False
+        del st.session_state['username']
+        st.write("You have been logged out.")
