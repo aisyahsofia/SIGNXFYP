@@ -199,75 +199,86 @@ def show_progress(username):
 
 import time
 
-def sign_detection():
-    st.subheader("Real-time Sign Detection")
-    st.write("Point your camera to detect ASL signs in real-time.")
+import cv2
+import numpy as np
+import streamlit as st
+import mediapipe as mp
 
-    st.title("Webcam Feed")
-    video_input = st.camera_input("Take a photo")
-    
-    if video_input:
-        st.image(video_input)
-        
-        # Initialize mediapipe hands module
-        mp_hands = mp.solutions.hands
-        hands = mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.5)
-        mp_draw = mp.solutions.drawing_utils
-        
-        # Initialize capture
-        cap = cv2.VideoCapture(0)
-        
+# Initialize Mediapipe and model
+mp_hands = mp.solutions.hands
+mp_draw = mp.solutions.drawing_utils
+
+# Dummy model and labels (replace with your trained model and labels)
+class DummyModel:
+    def predict(self, data):
+        return [[0.1, 0.9]]  # Example probabilities
+
+model = SignXModel()
+label_dict = {0: "A", 1: "B"}  # Replace with your actual label dictionary
+
+# Real-time video detection
+def real_time_detection():
+    st.title("Real-Time ASL Sign Detection")
+    st.write("This feature uses your webcam for detecting ASL signs.")
+
+    # Access webcam
+    run_detection = st.checkbox("Start Webcam")
+    frame_placeholder = st.empty()
+
+    if run_detection:
+        cap = cv2.VideoCapture(0)  # Open webcam feed
+
         if not cap.isOpened():
-            st.write("Error: Could not access the camera.")
+            st.error("Error: Could not access the camera.")
             return
-        
-        frame_placeholder = st.empty()
-        
-        # Process a few frames instead of an infinite loop
-        for _ in range(10):  # Adjust this number for how many frames you want to process
-            ret, frame = cap.read()
-            if not ret:
-                st.write("Failed to grab frame.")
-                break
-            
-            # Process frame
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            results = hands.process(frame_rgb)
-            
-            if results.multi_hand_landmarks:
-                for hand_landmarks in results.multi_hand_landmarks:
-                    mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-                
-                # Prepare data for model prediction (same as before)
-                x_ = []
-                y_ = []
-                data_aux = []
-                for i in range(len(hand_landmarks.landmark)):
-                    x = hand_landmarks.landmark[i].x
-                    y = hand_landmarks.landmark[i].y
-                    x_.append(x)
-                    y_.append(y)
-                    data_aux.append(x - min(x_))
-                    data_aux.append(y - min(y_))
-                
-                data_aux = np.asarray(data_aux).reshape(1, -1)
-                prediction = model.predict(data_aux)
-                
-                predicted_class_index = np.argmax(prediction, axis=1)[0]
-                predicted_probability = prediction[0][predicted_class_index]
-                
-                if predicted_probability >= 0.3:
-                    predicted_key = str(predicted_class_index)
-                    predicted_character = label_dict.get(predicted_key, 'Unknown')
-                else:
-                    predicted_character = 'Unknown'
-                
+
+        with mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.5) as hands:
+            while run_detection:
+                ret, frame = cap.read()
+                if not ret:
+                    st.error("Failed to grab frame.")
+                    break
+
+                # Convert frame to RGB for Mediapipe
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                results = hands.process(frame_rgb)
+
+                # If hand landmarks detected
+                if results.multi_hand_landmarks:
+                    for hand_landmarks in results.multi_hand_landmarks:
+                        mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+
+                        # Prepare data for prediction
+                        x_ = [lm.x for lm in hand_landmarks.landmark]
+                        y_ = [lm.y for lm in hand_landmarks.landmark]
+                        data_aux = [coord for pair in zip(x_, y_) for coord in pair]
+
+                        # Predict
+                        data_aux = np.array(data_aux).reshape(1, -1)
+                        prediction = model.predict(data_aux)
+                        predicted_class_index = np.argmax(prediction, axis=1)[0]
+                        predicted_probability = prediction[0][predicted_class_index]
+
+                        # Display prediction
+                        if predicted_probability >= 0.3:
+                            predicted_character = label_dict.get(predicted_class_index, "Unknown")
+                        else:
+                            predicted_character = "Unknown"
+
+                        # Add text overlay to the frame
+                        cv2.putText(
+                            frame,
+                            f"Prediction: {predicted_character} ({predicted_probability * 100:.2f}%)",
+                            (10, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            1,
+                            (0, 255, 0),
+                            2,
+                        )
+
+                # Display frame in Streamlit
                 frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                frame_placeholder.image(frame_bgr, caption=f"Prediction: {predicted_character} ({predicted_probability * 100:.2f}%)", channels="BGR")
-            else:
-                frame_placeholder.image(frame, caption="No hand detected.", channels="BGR")
-            
-            time.sleep(0.1)  # Add a small delay to allow for smoother updates
+                frame_placeholder.image(frame_bgr, channels="BGR", use_column_width=True)
 
         cap.release()
 
