@@ -215,7 +215,7 @@ def sign_detection():
     st.title("Real-Time ASL Detection")
 
     # Access webcam
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(2)
     if not cap.isOpened():
         st.error("Error: Could not access the camera.")
         return
