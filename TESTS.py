@@ -299,7 +299,6 @@ def quiz():
             st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
             st.session_state['question_data'] = ASL_ALPHABET
 
-
 # Feedback system
 def feedback():
     st.subheader("Feedback")
@@ -317,7 +316,6 @@ def feedback():
         else:
             st.error("Please provide your feedback text.")
     
-
 # Main app flow
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
