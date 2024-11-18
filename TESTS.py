@@ -204,19 +204,30 @@ from math import dist
 
 # Download the model from Google Drive
 def download_model():
-    # Provide the Google Drive link
-    model_url = 'https://drive.google.com/uc?id=1K5cGREmfJ9DVnT8DQ5p5qnzqnlFrZrvR'  # Change this to your model link
-    output = '/tmp/keras_model.h5'  # The location where the model will be saved
-    gdown.download(model_url, output, quiet=False)
-    model = load_model(output)
-    return model
+    model_url = 'https://drive.google.com/uc?id=1K5cGREmfJ9DVnT8DQ5p5qnzqnlFrZrvR'
+    output = '/tmp/aisyahhand.h5'  # The location where the model will be saved
 
-# Load Keras model
+    try:
+        # Download the model
+        gdown.download(model_url, output, quiet=False)
+
+        # Check if the file exists
+        if os.path.exists(output):
+            model = load_model(output)
+            return model
+        else:
+            st.error("Model file not found!")
+            return None
+    except Exception as e:
+        st.error(f"An error occurred while downloading or loading the model: {str(e)}")
+        return None
+
+# Load the model
 model = download_model()
-
-# Load Mediapipe hand tracking module
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands()
+if model:
+    st.write("Model loaded successfully!")
+else:
+    st.write("Failed to load model.")
 
 # Define a function to preprocess landmarks for the model
 def preprocess_landmarks(landmarks):
