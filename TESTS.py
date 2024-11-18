@@ -206,13 +206,6 @@ import requests
 import os
 import json
 
-# Set Streamlit page configuration
-st.set_page_config(
-    page_title="Sign Language Detection",
-    page_icon="🤟",
-    layout="wide"
-)
-
 # Define paths to GitHub files
 MODEL_URL = "https://github.com/aisyahsofia/SIGNXFYP/raw/main/AisyahSignX100.keras"
 LABELS_URL = "https://github.com/aisyahsofia/SIGNXFYP/raw/main/compile.json"
@@ -288,10 +281,6 @@ def process_frame(frame):
                                 (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
     return frame, detected_character
-
-# Main Streamlit app
-st.title("Sign Language Recognition")
-st.write("This app uses a video feed to detect and recognize ASL signs.")
 
 # Video capture logic
 run = st.checkbox("Start Video Capture")
