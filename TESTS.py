@@ -208,9 +208,11 @@ from tensorflow.keras.models import load_model
 
 try:
     model = load_model("./final/data/keras/AisyahSignX100.keras")
-    print("Model loaded successfully.")
+    st.write("Model loaded successfully.")
+except ValueError as e:
+    st.error(f"Error loading model: {str(e)}")
 except Exception as e:
-    print(f"Error: {e}")
+    st.error(f"Unexpected error: {str(e)}")
 
 # Check the model's input shape to determine the expected input size
 expected_input_size = model.input_shape[1]  # Adjust based on your model's input shape
