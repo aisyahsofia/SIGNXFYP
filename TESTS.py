@@ -194,88 +194,44 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
-import cv2
-import numpy as np
-import tensorflow as tf
-from mediapipe import solutions as mp
-import streamlit as st
+# Sign detection function with Streamlit integration
+def sign_detection():
+    st.subheader("Sign Detection Camera")
+    st.write("Point your camera to detect ASL signs.")
 
-# Define basic ASL alphabet (A-Y, excluding J and Z)
-basiccom = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y']
+    # Capture input from the camera
+    camera_input = st.camera_input("Capture Image of your Sign")
 
-# Model loading (ensure this is your trained model path)
-model = tf.keras.models.load_model('aisyahhand.h5')
+    if camera_input is not None:
+        # Convert the camera input to an image
+        image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
 
-# Mediapipe setup for hand landmark detection
-mp_holistic = mp.solutions.holistic
-mp_drawing = mp.solutions.drawing_utils
+        # Get the detected sign, bounding box, and confidence score
+        detected_sign, bounding_box, confidence = detect_sign(image)
 
-# Real-time SLR (Sign Language Recognition) Model
-sequence = []
-sentence = []
-predictions = []
-threshold = 0.5
-capture = cv2.VideoCapture(0)
-capture.set(3, 1280)
-capture.set(4, 720)
+        if detected_sign:
+            st.write(f"Detected Sign: {detected_sign} with confidence {confidence}")
+        else:
+            st.write("No sign detected")
 
-with mp_holistic.Holistic(min_detection_confidence=0.8, min_tracking_confidence=0.8) as holistic:
-    while capture.isOpened():
-        ret, frame = capture.read()
-        if not ret:
-            break
-        
-        # Flip frame horizontally for a later mirror view
-        frame = cv2.flip(frame, 1)
+# Sign detection using a trained model
+def detect_sign(image):
+    # Assuming 'your_model.h5' is the trained model for sign detection
+    model = tf.keras.models.load_model("aisyahhand.h5")
+    # Preprocess the image for prediction (e.g., resize and normalize)
+    image = cv2.resize(image, (64, 64))  # Resize to model input size
+    image = image / 255.0  # Normalize the image
 
-        # Process the frame and get results
-        images, results = mediapipe_detection(frame, holistic)
+    image = np.expand_dims(image, axis=0)  # Add batch dimension
 
-        # Draw landmarks on the frame
-        draw_landmarks(images, results)
+    prediction = model.predict(image)
+    class_index = np.argmax(prediction, axis=1)
 
-        # Extract keypoints from the detected landmarks
-        keypoints = extract_keypoints(results)
-        
-        # Append keypoints to sequence and trim to a maximum of 30 frames
-        sequence.append(keypoints)
-        sequence = sequence[-30:]
+    # Mapping of predicted class index to sign language labels
+    signs = list(SIGN_LANGUAGE_DATA.keys())
+    detected_sign = signs[class_index[0]]
 
-        # If we have 30 frames, make a prediction
-        if len(sequence) == 30:
-            # Predict the gesture
-            res = model.predict(np.expand_dims(sequence, axis=0))[0]
-
-            # Get the predicted gesture class
-            predicted_class = np.argmax(res)
-            
-            # Display the predicted class on screen
-            st.write(basiccom[predicted_class])
-            
-            predictions.append(predicted_class)
-
-            # If the last 10 predictions are the same, consider it confirmed
-            if np.unique(predictions[-10:])[0] == predicted_class:
-                if res[predicted_class] > threshold:
-                    if len(sentence) > 0 and basiccom[predicted_class] != sentence[-1]:
-                        sentence.append(basiccom[predicted_class])
-                    else:
-                        sentence = [basiccom[predicted_class]]
-            
-        # Visualize the predicted sentence on the screen
-        images = prob_viz(res, basiccom, images, colors)
-        cv2.rectangle(images, (0, 0), (640, 40), (245, 117, 16), -1)
-        cv2.putText(images, ' '.join(sentence), (3, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
-        
-        # Show the processed frame with the predicted text
-        cv2.imshow('Sign Language Recognition', images)
-        
-        # Break the loop if 'z' key is pressed
-        if cv2.waitKey(10) & 0xFF == ord('z'):
-            break
-
-capture.release()
-cv2.destroyAllWindows()
+    return detected_sign, None, prediction[0][class_index[0]]  # Return detected sign and confidence score
 
 # Quiz feature
 def quiz():
