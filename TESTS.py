@@ -197,6 +197,7 @@ def show_progress(username):
 import tensorflow as tf
 import cv2
 import numpy as np
+import requests
 
 file_url = "https://drive.google.com/uc?id=1K5cGREmfJ9DVnT8DQ5p5qnzqnlFrZrvR"
 response = requests.get(file_url)
