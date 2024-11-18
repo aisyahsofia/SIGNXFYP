@@ -197,31 +197,26 @@ def show_progress(username):
         st.table(user_progress)
 
 # Camera feature for sign detection
-def sign_detection():
-    st.subheader("Sign Detection Camera")
-    st.write("Point your camera to detect ASL signs.")
-    
-    camera_input = st.camera_input("Capture Image of your Sign")
+st.title("Sign Detection")
 
-    if camera_input is not None:
-        image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
+# Checkbox to open/close camera
+run_camera = st.checkbox("Open Camera")
 
-        # Placeholder for model predictions
-        # You can integrate a machine learning model here for sign recognition
-        # For this example, let's assume the model recognized "A"
-        detected_sign = "A"  # Placeholder for detected sign
+FRAME_WINDOW = st.image([])
 
-        st.image(image, caption="Captured Sign", use_column_width=True)
+if run_camera:
+    cap = cv2.VideoCapture(1)
+    if cap.isOpened():
+        while run_camera:
+            ret, frame = cap.read()
+            if ret:
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                FRAME_WINDOW.image(frame_rgb)
+            else:
+                st.warning("Camera frame not available.")
+                break
+    cap.release()
 
-        # Simulate progress tracking for the recognized sign
-        if detected_sign:
-            st.write(f"Detected sign: {detected_sign}")
-            if st.button(f"Mark '{detected_sign}' as learned"):
-                track_progress(st.session_state['username'], detected_sign)
-                st.success(f"'{detected_sign}' marked as learned!")
-
-    else:
-        st.error("No image captured yet.")
 
 # Quiz feature
 def quiz():
