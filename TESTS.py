@@ -198,7 +198,9 @@ import tensorflow as tf
 import cv2
 import numpy as np
 import requests
+import streamlit as st
 
+# Download and load the model
 file_url = "https://drive.google.com/uc?id=1K5cGREmfJ9DVnT8DQ5p5qnzqnlFrZrvR"
 response = requests.get(file_url)
 
@@ -206,10 +208,12 @@ response = requests.get(file_url)
 with open("your_model.h5", "wb") as f:
     f.write(response.content)
 
+# Load the model
+model = tf.keras.models.load_model("your_model.h5")
+
 # Function to preprocess the image for the model
 def preprocess_image(image):
     # Resize the image to the model's input size
-    # Assume model expects 224x224 input size
     image_resized = cv2.resize(image, (224, 224))
     
     # Normalize the image if the model expects it
@@ -220,7 +224,7 @@ def preprocess_image(image):
     
     return image_input
 
-# Placeholder function to detect ASL sign and return bounding box and confidence score
+# Function to detect ASL sign and return bounding box and confidence score
 def detect_sign(image):
     """
     Function to detect ASL sign using the model and return bounding box, sign, and confidence.
@@ -241,6 +245,54 @@ def detect_sign(image):
     confidence = float(prediction[0][predicted_class_index]) * 100  # Confidence in percentage
     
     return detected_sign, bounding_box, confidence
+
+# Sign detection function with Streamlit integration
+def sign_detection():
+    st.subheader("Sign Detection Camera")
+    st.write("Point your camera to detect ASL signs.")
+    
+    # Capture input from the camera
+    camera_input = st.camera_input("Capture Image of your Sign")
+
+    if camera_input is not None:
+        # Convert the camera input to an image
+        image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
+
+        # Get the detected sign, bounding box, and confidence score
+        detected_sign, bounding_box, confidence = detect_sign(image)
+
+        # Draw a bounding box around the detected hand (for visualization purposes)
+        (x1, y1, x2, y2) = bounding_box
+        image_with_box = cv2.rectangle(image.copy(), (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+        # Display the image with bounding box and confidence score
+        st.image(image_with_box, caption=f"Captured Sign: {detected_sign} ({confidence:.2f}%)", use_column_width=True)
+        
+        # Add button to track progress when a sign is detected
+        if detected_sign:
+            st.write(f"Detected sign: {detected_sign}")
+            if st.button(f"Mark '{detected_sign}' as learned"):
+                # Track the progress (this can be a function that records user progress)
+                st.success(f"'{detected_sign}' marked as learned!")
+    else:
+        st.error("No image captured yet.")
+
+# Main function or Streamlit app logic
+def main():
+    st.title("Sign Language Recognition App")
+
+    # Add navigation for different options
+    selection = st.sidebar.radio("Choose an option", ["Sign Detection", "Training", "Progress"])
+
+    if selection == "Sign Detection":
+        sign_detection()
+    elif selection == "Training":
+        st.write("Training Module")
+    elif selection == "Progress":
+        st.write("Progress Tracker")
+
+if __name__ == "__main__":
+    main()
 
 # Quiz feature
 def quiz():
