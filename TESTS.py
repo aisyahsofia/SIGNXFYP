@@ -2,69 +2,74 @@ import streamlit as st
 import pandas as pd
 import hashlib
 import random
+import cv2
 import numpy as np
-from PIL import Image
-import io
-import mediapipe as mp
-from tensorflow.keras.models import load_model
+import os
+
+
+print(cv2.__version__)
+
 
 # File paths
 USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
 SIGN_DATA_FILE = "sign_language_data.csv"
 
+# Base URL for GitHub raw files
+BASE_URL = "https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/"
+
 # Sign language data for training
 SIGN_LANGUAGE_DATA = {
-    "Hello": "HELLO ASL.mp4",
-    "Good Morning": "GOODMORNING ASL.mp4",
-    "Good Afternoon": "GOODAFTERNOON ASL.mp4",
-    "Good Evening": "GOODEVENING ASL.mp4",
-    "Good Night": "GOODNIGHT ASL.mp4",
-    "Thank You": "THANKYOU.mp4",
-    "Sorry": "SORRY ASL.mp4",
-    "Please": "PLEASE ASL.mp4",
-    "Yes": "YES ASL.mp4",
-    "No": "NO ASL.mp4",
-    "How Are You?": "HOWAREYOU ASL.mp4",
-    "My Name Is...": "MYNAMEIS ASL.mp4",
-    "What Is Your Name?": "WHATISYOURNAME ASL.mp4",
-    "I Am Deaf": "IMDEAF ASL.mp4",
-    "I Am Hearing": "IMHEARING ASL.mp4",
-    "Where Is the Toilet?": "WHEREISTHETOILET ASL.mp4",
-    "Help me": "HELPME ASL.mp4",
-    "I Love You": "ILOVEYOU ASL.mp4",
-    "See You Later": "SEEYOULATER ASL.mp4",
-    "Goodbye": "GOODBYE ASL.mp4",
+    "Hello": f"{BASE_URL}HELLO%20ASL.mp4",
+    "Thank You": f"{BASE_URL}THANKYOU.mp4",
+    "Sorry": f"{BASE_URL}SORRY%20ASL.mp4",
+    "Please": f"{BASE_URL}PLEASE%20ASL.mp4",
+    "Yes": f"{BASE_URL}YES%20ASL.mp4",
+    "No": f"{BASE_URL}NO%20ASL.mp4",
+    "How Are You?": f"{BASE_URL}HOWAREYOU%20ASL.mp4",
+    "My Name Is...": f"{BASE_URL}MYNAMEIS%20ASL.mp4",
+    "What Is Your Name?": f"{BASE_URL}WHATISYOURNAME%20ASL.mp4",
+    "I Am Deaf": f"{BASE_URL}IMDEAF%20ASL.mp4",
+    "I Am Hearing": f"{BASE_URL}IMHEARING%20ASL.mp4",
+    "Where Is the Toilet?": f"{BASE_URL}WHEREISTHETOILET%20ASL.mp4",
+    "Help me": f"{BASE_URL}HELPME%20ASL.mp4",
+    "I Love You": f"{BASE_URL}ILOVEYOU%20ASL.mp4",
+    "See You Later": f"{BASE_URL}SEEYOULATER%20ASL.mp4",
+    "Good Morning": f"{BASE_URL}GOODMORNING%20ASL.mp4",
+    "Good Afternoon": f"{BASE_URL}GOODAFTERNOON%20ASL.mp4",
+    "Good Evening": f"{BASE_URL}GOODEVENING%20ASL.mp4",
+    "Good Night": f"{BASE_URL}GOODNIGHT%20ASL.mp4",
+    "Goodbye": f"{BASE_URL}GOODBYE%20ASL.mp4",
 }
 
 # Basic ASL alphabet
 ASL_ALPHABET = {
-    'A': 'A ASL.mp4',
-    'B': 'B ASL.mp4',
-    'C': 'C ASL.mp4',
-    'D': 'D ASL.mp4',
-    'E': 'E ASL.mp4',
-    'F': 'F ASL.mp4',
-    'G': 'G ASL.mp4',
-    'H': 'H ASL.mp4',
-    'I': 'I ASL.mp4',
-    'J': 'J ASL.mp4',
-    'K': 'K ASL.mp4',
-    'L': 'L ASL.mp4',
-    'M': 'M ASL.mp4',
-    'N': 'N ASL.mp4',
-    'O': 'O ASL.mp4',
-    'P': 'P ASL.mp4',
-    'Q': 'Q ASL.mp4',
-    'R': 'R ASL.mp4',
-    'S': 'S ASL.mp4',
-    'T': 'T ASL.mp4',
-    'U': 'U ASL.mp4',
-    'V': 'V ASL.mp4',
-    'W': 'W ASL.mp4',
-    'X': 'X ASL.mp4',
-    'Y': 'Y ASL.mp4',
-    'Z': 'Z ASL.mp4'
+    'A': f"{BASE_URL}A%20ASL.mp4",
+    'B': f"{BASE_URL}B%20ASL.mp4",
+    'C': f"{BASE_URL}C%20ASL.mp4",
+    'D': f"{BASE_URL}D%20ASL.mp4",
+    'E': f"{BASE_URL}E%20ASL.mp4",
+    'F': f"{BASE_URL}F%20ASL.mp4",
+    'G': f"{BASE_URL}G%20ASL.mp4",
+    'H': f"{BASE_URL}H%20ASL.mp4",
+    'I': f"{BASE_URL}I%20ASL.mp4",
+    'J': f"{BASE_URL}J%20ASL.mp4",
+    'K': f"{BASE_URL}K%20ASL.mp4",
+    'L': f"{BASE_URL}L%20ASL.mp4",
+    'M': f"{BASE_URL}M%20ASL.mp4",
+    'N': f"{BASE_URL}N%20ASL.mp4",
+    'O': f"{BASE_URL}O%20ASL.mp4",
+    'P': f"{BASE_URL}P%20ASL.mp4",
+    'Q': f"{BASE_URL}Q%20ASL.mp4",
+    'R': f"{BASE_URL}R%20ASL.mp4",
+    'S': f"{BASE_URL}S%20ASL.mp4",
+    'T': f"{BASE_URL}T%20ASL.mp4",
+    'U': f"{BASE_URL}U%20ASL.mp4",
+    'V': f"{BASE_URL}V%20ASL.mp4",
+    'W': f"{BASE_URL}W%20ASL.mp4",
+    'X': f"{BASE_URL}X%20ASL.mp4",
+    'Y': f"{BASE_URL}Y%20ASL.mp4",
+    'Z': f"{BASE_URL}Z%20ASL.mp4"
 }
 
 # Hashing function for passwords
@@ -96,6 +101,7 @@ def load_progress_data():
 # Login system
 def login():
     st.title("SignX: Next-Gen Technology for Deaf Communications")
+
     
     users_data = load_user_data()
     
@@ -138,13 +144,45 @@ def sign_up():
         else:
             st.error("Passwords do not match")
 
+# Training module with dropdown
+def training():
+    st.subheader("Sign Language Training")
+    selected_phrase = st.selectbox("Choose a phrase to learn", list(SIGN_LANGUAGE_DATA.keys()))
+    
+    if selected_phrase:
+        st.write(f"Phrase: {selected_phrase}")
+        video_url = SIGN_LANGUAGE_DATA[selected_phrase]
+        try:
+            st.video(video_url)
+        except Exception as e:
+            st.error(f"Error loading video: {str(e)}")
+        
+        if st.button(f"Mark {selected_phrase} as learned"):
+            track_progress(st.session_state['username'], selected_phrase)
+
+# ASL alphabet training with dropdown
+def asl_alphabet_training():
+    st.subheader("Learn the ASL Alphabet")
+    selected_letter = st.selectbox("Choose a letter to learn", list(ASL_ALPHABET.keys()))
+    
+    if selected_letter:
+        st.write(f"Letter: {selected_letter}")
+        video_url = ASL_ALPHABET[selected_letter]
+        try:
+            st.video(video_url)
+        except Exception as e:
+            st.error(f"Error loading video: {str(e)}")
+        
+        if st.button(f"Mark {selected_letter} as learned"):
+            track_progress(st.session_state['username'], selected_letter)
+
 # Performance tracking
 def track_progress(username, phrase):
     progress_data = load_progress_data()
     new_entry = pd.DataFrame([[username, phrase]], columns=["username", "phrase"])
     progress_data = pd.concat([progress_data, new_entry], ignore_index=True)
     save_progress_data(progress_data)
-    st.success(f"{phrase} marked as learned!")
+    st.success(f"'{phrase}' marked as learned!")
 
 # Display user progress
 def show_progress(username):
@@ -160,108 +198,99 @@ def show_progress(username):
 def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
+    
+    camera_input = st.camera_input("Capture Image of your Sign")
 
-# Load the Keras model
-model = load_model("./AisyahSignX100.keras")
+    if camera_input is not None:
+        image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
 
-# Check the model's input shape to determine the expected input size
-expected_input_size = model.input_shape[1]  # Adjust based on your model's input shape
+        # Placeholder for model predictions
+        # You can integrate a machine learning model here for sign recognition
+        # For this example, let's assume the model recognized "Hello"
+        detected_sign = "Hello"  # Placeholder for detected sign
 
-# Set up MediaPipe Hands
-mp_hands = mp.solutions.hands
-mp_drawing = mp.solutions.drawing_utils
-mp_drawing_styles = mp.solutions.drawing_styles
+        st.image(image, caption="Captured Sign", use_column_width=True)
 
-hands = mp_hands.Hands(
-    static_image_mode=False,  # Set to False for continuous detection
-    max_num_hands=1,  # Detect one hand at a time for simplicity
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5
-)
+        # Simulate progress tracking for the recognized sign
+        if detected_sign:
+            st.write(f"Detected sign: {detected_sign}")
+            if st.button(f"Mark '{detected_sign}' as learned"):
+                track_progress(st.session_state['username'], detected_sign)
+                st.success(f"'{detected_sign}' marked as learned!")
 
-# Label dictionary for mapping predicted indices to characters, excluding 'J' and 'Z'
-label_dict = {
-    '0': 'A',
-    '1': 'B',
-    '2': 'C',
-    '3': 'D',
-    '4': 'E',
-    '5': 'F',
-    '6': 'G',
-    '7': 'H',
-    '8': 'I',
-    '9': 'K',
-    '10': 'L',
-    '11': 'M',
-    '12': 'N',
-    '13': 'O',
-    '14': 'P',
-    '15': 'Q',
-    '16': 'R',
-    '17': 'S',
-    '18': 'T',
-    '19': 'U',
-    '20': 'V',
-    '21': 'W',
-    '22': 'X',
-    '23': 'Y',
-}
-
-# Streamlit camera input widget
-video = st.camera_input("Capture a photo")
-
-if video is not None:
-    # Convert the Streamlit video input into a format that can be processed by MediaPipe
-    img = Image.open(io.BytesIO(video.getvalue()))
-    frame = np.array(img)
-
-    # Convert frame to RGB for MediaPipe processing
-    frame_rgb = np.array(img.convert('RGB'))
-    results = hands.process(frame_rgb)
-
-    # If hand landmarks are detected
-    if results.multi_hand_landmarks:
-        for hand_landmarks in results.multi_hand_landmarks:
-            # Draw landmarks on the image
-            mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS, 
-                                      mp_drawing_styles.get_default_hand_landmarks_style(), 
-                                      mp_drawing_styles.get_default_hand_connections_style())
-
-        # Process the detected hand landmarks (you can include your custom logic here to classify the sign)
-        # Example: Convert landmarks to model input and get prediction
-
-    st.image(frame)  # Display the image in Streamlit
-    st.text("Sign detected: ... (prediction output here)")  # Display prediction
+    else:
+        st.error("No image captured yet.")
 
 # Quiz feature
 def quiz():
     st.subheader("Sign Language Quiz")
-    
+
+    # Initialize quiz type and question if not set
+    if 'quiz_type' not in st.session_state:
+        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
+
     if 'current_question' not in st.session_state:
-        st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+        if st.session_state['quiz_type'] == 'word':
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
+        else:
+            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
+            st.session_state['question_data'] = ASL_ALPHABET
 
+    # Display current question and video
     question = st.session_state['current_question']
-    
-    st.write(f"What does this sign mean?")
-    st.video(SIGN_LANGUAGE_DATA[question])
+    question_data = st.session_state['question_data']
+    st.write("What does this sign mean?")
+    st.video(question_data[question])
 
+    # Display answer input and Submit button
     answer = st.text_input("Your answer")
 
-    if st.button("Submit"):
+    if 'submitted' not in st.session_state:
+        st.session_state['submitted'] = False
+
+    # Show feedback after Submit
+    if st.button("Submit") and not st.session_state['submitted']:
         if answer.strip().lower() == question.lower():
             st.success("Correct!")
             track_progress(st.session_state['username'], question)
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
         else:
             st.error(f"Incorrect! The correct answer was '{question}'.")
+
+        st.session_state['submitted'] = True  # Set submitted to True after submission
+
+    # Show Next button after feedback is given
+    if st.session_state['submitted'] and st.button("Next"):
+        # Reset submitted state
+        st.session_state['submitted'] = False
+
+        # Select a new question and type
+        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
+        if st.session_state['quiz_type'] == 'word':
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
+        else:
+            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
+            st.session_state['question_data'] = ASL_ALPHABET
+
 
 # Feedback system
 def feedback():
     st.subheader("Feedback")
+    
+    # Slider for rating (1-5 scale)
+    rating = st.slider("Please rate your experience:", 1, 5, 3)  # Default to 3 (neutral)
+    
+    # Feedback text input
     feedback_text = st.text_area("Please provide your feedback or suggestions:")
+    
     if st.button("Submit Feedback"):
         if feedback_text:
-            st.success("Thank you for your feedback!")
+            st.success(f"Thank you for your feedback! You rated us {rating} out of 5.")
+            # You can add logic here to save the feedback with the rating, e.g., saving to a CSV or a database.
+        else:
+            st.error("Please provide your feedback text.")
+    
 
 # Main app flow
 if 'logged_in' not in st.session_state:
