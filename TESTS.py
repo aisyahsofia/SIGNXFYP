@@ -230,7 +230,7 @@ def detect_asl_sign(landmarks):
             return "A"
         # Add more conditions for other letters here
     
-    return "Unknown"  # If the sign cannot be identified
+    return "A"  # If the sign cannot be identified
 
 
 # Camera feature for sign detection
