@@ -212,20 +212,35 @@ LABELS_URL = "https://github.com/aisyahsofia/SIGNXFYP/raw/main/compile.json"
 TEMP_MODEL_PATH = "model.keras"
 TEMP_LABELS_PATH = "labels.json"
 
-# Download files from GitHub if not already present locally
+# Function to download files
 def download_file(url, local_path):
-    if not os.path.exists(local_path):
-        with open(local_path, "wb") as f:
+    try:
+        if not os.path.exists(local_path):
             response = requests.get(url)
-            f.write(response.content)
+            response.raise_for_status()
+            with open(local_path, "wb") as f:
+                f.write(response.content)
+    except requests.RequestException as e:
+        st.error(f"Error downloading file from {url}: {e}")
+        st.stop()
 
+# Download model and labels
 download_file(MODEL_URL, TEMP_MODEL_PATH)
 download_file(LABELS_URL, TEMP_LABELS_PATH)
 
 # Load the model and labels
-model = tf.keras.models.load_model(TEMP_MODEL_PATH)
-with open(TEMP_LABELS_PATH, "r") as f:
-    label_dict = json.load(f)
+try:
+    model = tf.keras.models.load_model(TEMP_MODEL_PATH)
+except Exception as e:
+    st.error(f"Error loading model: {e}")
+    st.stop()
+
+try:
+    with open(TEMP_LABELS_PATH, "r") as f:
+        label_dict = json.load(f)
+except Exception as e:
+    st.error(f"Error loading labels: {e}")
+    st.stop()
 
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
@@ -238,7 +253,7 @@ hands = mp_hands.Hands(
     min_tracking_confidence=0.5
 )
 
-# Define a function to process the video frame
+# Function to process video frame
 def process_frame(frame):
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = hands.process(frame_rgb)
@@ -258,8 +273,7 @@ def process_frame(frame):
 
             # Extract landmark data
             data_aux = []
-            x_ = []
-            y_ = []
+            x_, y_ = [], []
             for landmark in hand_landmarks.landmark:
                 x_.append(landmark.x)
                 y_.append(landmark.y)
@@ -268,7 +282,7 @@ def process_frame(frame):
                 data_aux.append(landmark.x - min_x)
                 data_aux.append(landmark.y - min_y)
 
-            # Ensure data format matches model input
+            # Ensure data matches model input
             if len(data_aux) == model.input_shape[1]:
                 data_aux = np.array(data_aux).reshape(1, -1)
                 prediction = model.predict(data_aux)
@@ -290,21 +304,23 @@ if run:
     cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
-        st.error("Error: Unable to access the camera.")
+        st.error("Camera not accessible. Please check your device settings.")
+        st.stop()
     else:
-        while run:
-            ret, frame = cap.read()
-            if not ret:
-                st.error("Error: Unable to capture video frame.")
-                break
+        try:
+            while st.session_state.get("run", True):
+                ret, frame = cap.read()
+                if not ret:
+                    st.error("Error: Unable to capture video frame.")
+                    break
 
-            # Process the frame for sign detection
-            frame, detected_character = process_frame(frame)
+                # Process the frame
+                frame, detected_character = process_frame(frame)
 
-            # Display the video frame
-            stframe.image(frame, channels="BGR", use_column_width=True)
-
-        cap.release()
+                # Display the video frame
+                stframe.image(frame, channels="BGR", use_column_width=True)
+        finally:
+            cap.release()
 
 
 # Quiz feature
