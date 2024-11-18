@@ -1,6 +1,6 @@
+gtts==2.5.4
 opencv-python-headless==4.10.0.84
 streamlit==<1.40.1>
-gtts==2.5.4
 opencv-contrib-python
 numpy
 pandas
