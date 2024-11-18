@@ -194,32 +194,52 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
-# Camera feature for sign detection
-def sign_detection():
-    st.subheader("Sign Detection Camera")
-    st.write("Point your camera to detect ASL signs.")
+import tensorflow as tf
+import cv2
+import numpy as np
+
+file_url = "https://drive.google.com/uc?id=1K5cGREmfJ9DVnT8DQ5p5qnzqnlFrZrvR"
+response = requests.get(file_url)
+
+# Save the file locally
+with open("your_model.h5", "wb") as f:
+    f.write(response.content)
+
+# Function to preprocess the image for the model
+def preprocess_image(image):
+    # Resize the image to the model's input size
+    # Assume model expects 224x224 input size
+    image_resized = cv2.resize(image, (224, 224))
     
-    camera_input = st.camera_input("Capture Image of your Sign")
+    # Normalize the image if the model expects it
+    image_normalized = image_resized / 255.0  # Normalize to [0, 1]
+    
+    # Add batch dimension to the image (model expects (batch_size, height, width, channels))
+    image_input = np.expand_dims(image_normalized, axis=0)
+    
+    return image_input
 
-    if camera_input is not None:
-        image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
-
-        # Placeholder for model predictions
-        # You can integrate a machine learning model here for sign recognition
-        # For this example, let's assume the model recognized "Hello"
-        detected_sign = "Hello"  # Placeholder for detected sign
-
-        st.image(image, caption="Captured Sign", use_column_width=True)
-
-        # Simulate progress tracking for the recognized sign
-        if detected_sign:
-            st.write(f"Detected sign: {detected_sign}")
-            if st.button(f"Mark '{detected_sign}' as learned"):
-                track_progress(st.session_state['username'], detected_sign)
-                st.success(f"'{detected_sign}' marked as learned!")
-
-    else:
-        st.error("No image captured yet.")
+# Placeholder function to detect ASL sign and return bounding box and confidence score
+def detect_sign(image):
+    """
+    Function to detect ASL sign using the model and return bounding box, sign, and confidence.
+    """
+    # Preprocess the image
+    image_input = preprocess_image(image)
+    
+    # Get prediction from the model
+    prediction = model.predict(image_input)
+    
+    # Get the predicted sign (the class with the highest probability)
+    predicted_class_index = np.argmax(prediction)
+    detected_sign = chr(predicted_class_index + ord('A'))  # Convert index to letter (A-Y)
+    
+    # Assume we get bounding box and confidence score from another model (e.g., detection model)
+    # Here, we'll just use a placeholder bounding box and confidence score
+    bounding_box = (50, 50, 200, 200)  # Placeholder bounding box (x1, y1, x2, y2)
+    confidence = float(prediction[0][predicted_class_index]) * 100  # Confidence in percentage
+    
+    return detected_sign, bounding_box, confidence
 
 # Quiz feature
 def quiz():
