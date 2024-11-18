@@ -194,19 +194,37 @@ def show_progress(username):
     else:
         st.write("No progress data available.")
 
-# Video capture using OpenCV (Only on request)
-def start_video_capture():
-    if 'video_started' not in st.session_state:
-        st.session_state.video_started = False
 
-    if st.checkbox("Start Video Capture"):
-        st.session_state.video_started = True
-        st.write("Starting video capture...")
-        run_video_capture()
-    elif st.session_state.video_started:
-        st.write("Video capture stopped.")
-        st.session_state.video_started = False
+# HTML and JavaScript for camera access
+camera_html = """
+<html>
+<head>
+<script>
+function startCamera() {
+    navigator.mediaDevices.getUserMedia({ video: true })
+    .then(function(stream) {
+        var videoElement = document.getElementById('video');
+        videoElement.srcObject = stream;
+        videoElement.play();
+    }).catch(function(err) {
+        console.log("Error accessing camera: ", err);
+        alert("Could not access the camera");
+    });
+}
+window.onload = startCamera;
+</script>
+</head>
+<body>
+    <video id="video" width="100%" height="auto" autoplay></video>
+</body>
+</html>
+"""
 
+# Embed the camera HTML/JS component
+def embed_camera_component():
+    components.html(camera_html, height=400)
+
+# OpenCV video capture (for desktop)
 def run_video_capture():
     cap = cv2.VideoCapture(0)
 
@@ -227,6 +245,35 @@ def run_video_capture():
 
     cap.release()
     cv2.destroyAllWindows()
+
+def start_video_capture():
+    if 'video_started' not in st.session_state:
+        st.session_state.video_started = False
+
+    if st.checkbox("Start Video Capture"):
+        st.session_state.video_started = True
+        st.write("Starting video capture...")
+        run_video_capture()
+    elif st.session_state.video_started:
+        st.write("Video capture stopped.")
+        st.session_state.video_started = False
+
+# Main content
+def main():
+    st.sidebar.title("SignX Menu")
+    selection = st.sidebar.radio("Choose an option", ["Login", "Sign Up", "Training", "ASL Alphabet", "Progress", "Video Capture"])
+
+    # For mobile-friendly or camera capture
+    if selection == "Video Capture":
+        is_mobile = False
+        # Check if the user is on mobile (you can use `st.experimental_get_query_params` or other methods)
+        if is_mobile:
+            embed_camera_component()  # Mobile-compatible camera
+        else:
+            start_video_capture()  # Desktop video capture with OpenCV
+
+if __name__ == "__main__":
+    main()
 
 def main():
     st.sidebar.title("SignX Menu")
