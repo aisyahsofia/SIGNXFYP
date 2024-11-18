@@ -5,6 +5,9 @@ import random
 import cv2
 import numpy as np
 import os
+from tensorflow.keras.models import load_model
+from PIL import Image
+import io
 
 
 print(cv2.__version__)
@@ -242,7 +245,7 @@ if video is not None:
     frame = np.array(img)
 
     # Convert frame to RGB for MediaPipe processing
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    frame_rgb = np.array(img.convert('RGB'))
     results = hands.process(frame_rgb)
 
     # If hand landmarks are detected
@@ -285,19 +288,18 @@ if video is not None:
                 else:
                     predicted_character = 'Unknown'
 
-                # Draw prediction on the frame
+                # Draw prediction on the frame (show in Streamlit as a label)
                 x1 = int(min(x_) * frame.shape[1]) - 10
                 y1 = int(min(y_) * frame.shape[0]) - 10
                 x2 = int(max(x_) * frame.shape[1]) + 10
                 y2 = int(max(y_) * frame.shape[0]) + 10
 
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (72, 61, 139), 4)
-                cv2.putText(frame, f'{predicted_character} ({predicted_probability * 100:.2f}%)',
-                            (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.3, (72, 61, 139), 3, cv2.LINE_AA)
+                # Show the predicted character and confidence
+                st.text(f"Predicted Character: {predicted_character} ({predicted_probability * 100:.2f}%)")
+                st.text(f"Bounding Box Coordinates: ({x1}, {y1}) to ({x2}, {y2})")
 
     # Display the frame with annotations
-    st.image(frame, channels="BGR")
-
+    st.image(frame, channels="RGB")
 
 # Quiz feature
 def quiz():
