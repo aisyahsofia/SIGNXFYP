@@ -204,7 +204,7 @@ from math import dist
 
 # Download the model from Google Drive
 def download_model():
-    model_url = 'https://drive.google.com/uc?id=1K5cGREmfJ9DVnT8DQ5p5qnzqnlFrZrvR'
+    model_url = 'https://drive.google.com/file/d/1M6cPq-ze2ANpMU6SqljZ97R-RSZL8tD3/view?usp=sharing'
     output = '/tmp/aisyahhand.h5'  # The location where the model will be saved
 
     try:
