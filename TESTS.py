@@ -206,12 +206,46 @@ def sign_detection():
     if camera_input is not None:
         image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
 
+# Function to map detected signs to valid ones (A-Y, no J and Z)
 def map_sign_to_valid_range(detected_sign):
     valid_signs = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y']
     if detected_sign in valid_signs:
         return detected_sign
     else:
-        return "Invalid Sign"
+        return "Invalid Sign"  # In case an invalid sign (like J or Z) is detected
+
+# Camera feature for sign detection
+def sign_detection():
+    st.subheader("Sign Detection Camera")
+    st.write("Point your camera to detect ASL signs.")
+    
+    camera_input = st.camera_input("Capture Image of your Sign")
+
+    if camera_input is not None:
+        image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
+
+        # Placeholder for model predictions
+        # You can integrate a machine learning model here for sign recognition
+        # For this example, let's assume the model recognized "A"
+        detected_sign = "A"  # Placeholder for detected sign
+
+        # Map the detected sign to a valid one (A-Y)
+        detected_sign = map_sign_to_valid_range(detected_sign)
+
+        st.image(image, caption="Captured Sign", use_column_width=True)
+
+        # Simulate progress tracking for the recognized sign
+        if detected_sign:  # Checking if the detected sign exists
+            st.write(f"Detected sign: {detected_sign}")
+            if st.button(f"Mark '{detected_sign}' as learned"):
+                track_progress(st.session_state['username'], detected_sign)
+                st.success(f"'{detected_sign}' marked as learned!")
+        else:
+            st.error("Invalid sign detected.")  # Error handling for invalid signs
+
+    else:
+        st.error("No image captured yet.")
+
 
         st.image(image, caption="Captured Sign", use_column_width=True)
 
