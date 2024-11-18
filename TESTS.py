@@ -278,6 +278,7 @@ def sign_detection():
     else:
         st.error("No image captured yet.")
 
+
 # Quiz feature
 def quiz():
     st.subheader("Sign Language Quiz")
