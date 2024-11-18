@@ -6,7 +6,6 @@ import cv2
 import numpy as np
 import mediapipe as mp
 from tensorflow.keras.models import load_model
-import gdown
 
 # Print OpenCV version for debugging
 print(cv2.__version__)
