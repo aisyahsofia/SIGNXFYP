@@ -194,29 +194,86 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
+import streamlit as st
+import cv2
+import numpy as np
+import mediapipe as mp
+from math import dist
+
+# Load Mediapipe hand tracking module
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands()
+
+# Define a function to detect ASL based on landmarks
+def detect_asl_sign(landmarks):
+    # Define ASL alphabet signs based on hand landmarks
+    asl_alphabet = {
+        0: "A", 1: "B", 2: "C", 3: "D", 4: "E", 5: "F", 6: "G", 7: "H", 8: "I", 9: "K",
+        10: "L", 11: "M", 12: "N", 13: "O", 14: "P", 15: "Q", 16: "R", 17: "S", 18: "T", 19: "U",
+        20: "V", 21: "W", 22: "X", 23: "Y"
+    }
+
+    # Placeholder logic for detecting "A" (you need to adjust this to detect real signs)
+    if landmarks:
+        thumb_tip = landmarks[4]  # Thumb tip (Landmark 4)
+        index_tip = landmarks[8]  # Index tip (Landmark 8)
+
+        # Debug: print landmarks and check if the distance is calculated correctly
+        print(f"Thumb tip coordinates: ({thumb_tip.x}, {thumb_tip.y})")
+        print(f"Index tip coordinates: ({index_tip.x}, {index_tip.y})")
+        
+        # Compute Euclidean distance between thumb and index tip
+        distance = dist((thumb_tip.x, thumb_tip.y), (index_tip.x, index_tip.y))
+        
+        # Debug: print distance
+        print(f"Distance between thumb and index tip: {distance}")
+
+        # If the distance is small, we assume it's "A"
+        if distance < 0.05:  # Adjust the threshold based on the distance between the fingers
+            return "A"
+        
+    return "Unknown"  # If the sign cannot be identified
+
+
 # Camera feature for sign detection
 def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
-    
+
     camera_input = st.camera_input("Capture Image of your Sign")
 
     if camera_input is not None:
         image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
 
-        # Placeholder for model predictions
-        # You can integrate a machine learning model here for sign recognition
-        # For this example, let's assume the model recognized "A"
-        detected_sign = "A"  # Placeholder for detected sign
+        # Convert the image to RGB
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        st.image(image, caption="Captured Sign", use_column_width=True)
+        # Process the image and get hand landmarks
+        results = hands.process(image_rgb)
 
-        # Simulate progress tracking for the recognized sign
-        if detected_sign:
-            st.write(f"Detected sign: {detected_sign}")
-            if st.button(f"Mark '{detected_sign}' as learned"):
-                track_progress(st.session_state['username'], detected_sign)
-                st.success(f"'{detected_sign}' marked as learned!")
+        # If hand landmarks are detected
+        if results.multi_hand_landmarks:
+            for hand_landmarks in results.multi_hand_landmarks:
+                # Get the list of landmarks as a numpy array
+                landmarks = hand_landmarks.landmark
+
+                # Get the detected ASL sign based on the landmarks
+                detected_sign = detect_asl_sign(landmarks)
+
+                # Draw the landmarks on the hand
+                mp.solutions.drawing_utils.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+
+                # Display the detected sign and image
+                st.image(image, caption="Captured Sign", use_column_width=True)
+
+                # Show the detected sign and provide option to track it
+                if detected_sign:
+                    st.write(f"Detected sign: {detected_sign}")
+                    if st.button(f"Mark '{detected_sign}' as learned"):
+                        track_progress(st.session_state['username'], detected_sign)
+                        st.success(f"'{detected_sign}' marked as learned!")
+        else:
+            st.error("No hand detected. Please try again.")
 
     else:
         st.error("No image captured yet.")
