@@ -1,20 +1,22 @@
 import streamlit as st
 import pandas as pd
 import hashlib
-import random
+import os
 import cv2
 import numpy as np
-import os
-from tensorflow.keras.models import load_model
 import mediapipe as mp
-import requests
+from tensorflow.keras.models import load_model
+import gdown
 
-# File paths
+# Print OpenCV version for debugging
+print(cv2.__version__)
+
+# File paths for storing user and progress data
 USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
 SIGN_DATA_FILE = "sign_language_data.csv"
 
-# Base URL for GitHub raw files
+# Base URL for GitHub raw files for sign language data
 BASE_URL = "https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/"
 
 # Sign language data for training
@@ -42,38 +44,11 @@ SIGN_LANGUAGE_DATA = {
 }
 
 # Basic ASL alphabet
-ASL_ALPHABET = {
-    'A': f"{BASE_URL}A%20ASL.mp4",
-    'B': f"{BASE_URL}B%20ASL.mp4",
-    'C': f"{BASE_URL}C%20ASL.mp4",
-    'D': f"{BASE_URL}D%20ASL.mp4",
-    'E': f"{BASE_URL}E%20ASL.mp4",
-    'F': f"{BASE_URL}F%20ASL.mp4",
-    'G': f"{BASE_URL}G%20ASL.mp4",
-    'H': f"{BASE_URL}H%20ASL.mp4",
-    'I': f"{BASE_URL}I%20ASL.mp4",
-    'J': f"{BASE_URL}J%20ASL.mp4",
-    'K': f"{BASE_URL}K%20ASL.mp4",
-    'L': f"{BASE_URL}L%20ASL.mp4",
-    'M': f"{BASE_URL}M%20ASL.mp4",
-    'N': f"{BASE_URL}N%20ASL.mp4",
-    'O': f"{BASE_URL}O%20ASL.mp4",
-    'P': f"{BASE_URL}P%20ASL.mp4",
-    'Q': f"{BASE_URL}Q%20ASL.mp4",
-    'R': f"{BASE_URL}R%20ASL.mp4",
-    'S': f"{BASE_URL}S%20ASL.mp4",
-    'T': f"{BASE_URL}T%20ASL.mp4",
-    'U': f"{BASE_URL}U%20ASL.mp4",
-    'V': f"{BASE_URL}V%20ASL.mp4",
-    'W': f"{BASE_URL}W%20ASL.mp4",
-    'X': f"{BASE_URL}X%20ASL.mp4",
-    'Y': f"{BASE_URL}Y%20ASL.mp4",
-    'Z': f"{BASE_URL}Z%20ASL.mp4"
-}
+ASL_ALPHABET = {letter: f"{BASE_URL}{letter}%20ASL.mp4" for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'}
 
 # Hashing function for passwords
 def hash_password(password):
-    return hashlib.sha256(str.encode(password)).hexdigest()
+    return hashlib.sha256(password.encode()).hexdigest()
 
 # Save user data to a CSV
 def save_user_data(users_data):
@@ -100,13 +75,10 @@ def load_progress_data():
 # Login system
 def login():
     st.title("SignX: Next-Gen Technology for Deaf Communications")
-
     users_data = load_user_data()
-
     st.subheader("Login")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
-
     hashed_password = hash_password(password)
 
     if st.button("Login"):
@@ -187,119 +159,87 @@ def show_progress(username):
     st.subheader("Your Learning Progress")
     progress_data = load_progress_data()
     user_progress = progress_data[progress_data['username'] == username]
-
-    if not user_progress.empty:
-        st.write(f"Progress for {username}:")
-        st.write(user_progress)
+    if user_progress.empty:
+        st.write("No progress yet.")
     else:
-        st.write("No progress data available.")
+        st.table(user_progress)
 
+# Camera feature for sign detection
+def sign_detection():
+    st.subheader("Sign Detection Camera")
+    st.write("Point your camera to detect ASL signs.")
 
-# HTML and JavaScript for camera access
-camera_html = """
-<html>
-<head>
-<script>
-function startCamera() {
-    navigator.mediaDevices.getUserMedia({ video: true })
-    .then(function(stream) {
-        var videoElement = document.getElementById('video');
-        videoElement.srcObject = stream;
-        videoElement.play();
-    }).catch(function(err) {
-        console.log("Error accessing camera: ", err);
-        alert("Could not access the camera");
-    });
-}
-window.onload = startCamera;
-</script>
-</head>
-<body>
-    <video id="video" width="100%" height="auto" autoplay></video>
-</body>
-</html>
-"""
+    # Model download from Google Drive
+    gdown.download('https://drive.google.com/uc?id=1yRD3a942y5yID2atOF2o71lLwhOBoqJ-', 'AisyahSignX59.h5', quiet=False)
 
-# Embed the camera HTML/JS component
-def embed_camera_component():
-    components.html(camera_html, height=400)
+    # Load the model
+    model = load_model('AisyahSignX59.h5')
 
-# OpenCV video capture (for desktop)
-def run_video_capture():
+    # Setup MediaPipe hands
+    mp_hands = mp.solutions.hands
+    hands = mp_hands.Hands()
+    mp_draw = mp.solutions.drawing_utils
+
+    # Open camera feed
     cap = cv2.VideoCapture(0)
 
-    if not cap.isOpened():
-        st.error("Error: Could not access the camera.")
-        return
-
-    while True:
+    while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
-            st.error("Error: Could not read frame.")
-            break
+            continue
 
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        st.image(frame, channels="RGB", use_column_width=True)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        # Flip the frame horizontally
+        frame = cv2.flip(frame, 1)
+
+        # Convert the frame to RGB
+        img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = hands.process(img_rgb)
+
+        if results.multi_hand_landmarks:
+            for landmarks in results.multi_hand_landmarks:
+                mp_draw.draw_landmarks(frame, landmarks, mp_hands.HAND_CONNECTIONS)
+
+                # Get the landmarks and make predictions (model inference part is simplified)
+                data = np.array(landmarks.landmark).flatten().reshape(1, -1)
+                prediction = model.predict(data)
+
+                st.write(f"Prediction: {prediction}")
+
+        # Display the frame
+        st.image(frame, channels="BGR")
 
     cap.release()
-    cv2.destroyAllWindows()
 
-def start_video_capture():
-    if 'video_started' not in st.session_state:
-        st.session_state.video_started = False
-
-    if st.checkbox("Start Video Capture"):
-        st.session_state.video_started = True
-        st.write("Starting video capture...")
-        run_video_capture()
-    elif st.session_state.video_started:
-        st.write("Video capture stopped.")
-        st.session_state.video_started = False
-
-# Main content
+# Main function to handle the app flow
 def main():
     st.sidebar.title("SignX Menu")
-    selection = st.sidebar.radio("Choose an option", ["Login", "Sign Up", "Training", "ASL Alphabet", "Progress", "Video Capture"], key="sidebar_radio")
+    menu_options = ["Login", "Sign Up", "Training", "ASL Alphabet", "Progress", "Sign Detection"]
+    choice = st.sidebar.selectbox("Select an option", menu_options)
 
-    # For mobile-friendly or camera capture
-    if selection == "Video Capture":
-        is_mobile = False
-        # Check if the user is on mobile (you can use `st.experimental_get_query_params` or other methods)
-        if is_mobile:
-            embed_camera_component()  # Mobile-compatible camera
-        else:
-            start_video_capture()  # Desktop video capture with OpenCV
-
-if __name__ == "__main__":
-    main()
-
-def main():
-    st.sidebar.title("SignX Menu")
-    selection = st.sidebar.radio("Choose an option", ["Login", "Sign Up", "Training", "ASL Alphabet", "Progress", "Video Capture"])
-
-    if selection == "Login":
+    if choice == "Login":
         login()
-    elif selection == "Sign Up":
+    elif choice == "Sign Up":
         sign_up()
-    elif selection == "Training":
-        if 'logged_in' in st.session_state and st.session_state.logged_in:
+    elif choice == "Training":
+        if 'logged_in' in st.session_state and st.session_state['logged_in']:
             training()
         else:
             st.warning("Please log in first.")
-    elif selection == "ASL Alphabet":
-        if 'logged_in' in st.session_state and st.session_state.logged_in:
+    elif choice == "ASL Alphabet":
+        if 'logged_in' in st.session_state and st.session_state['logged_in']:
             asl_alphabet_training()
         else:
             st.warning("Please log in first.")
-    elif selection == "Progress":
-        if 'logged_in' in st.session_state and st.session_state.logged_in:
+    elif choice == "Progress":
+        if 'logged_in' in st.session_state and st.session_state['logged_in']:
             show_progress(st.session_state['username'])
         else:
             st.warning("Please log in first.")
-    elif selection == "Video Capture":
-        start_video_capture()
+    elif choice == "Sign Detection":
+        if 'logged_in' in st.session_state and st.session_state['logged_in']:
+            sign_detection()
+        else:
+            st.warning("Please log in first.")
 
 if __name__ == "__main__":
     main()
