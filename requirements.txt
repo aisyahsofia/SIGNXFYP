@@ -1,10 +1,13 @@
 opencv-python-headless==4.10.0.84
-streamlit==<TESTS.py>
+streamlit==<1.40.1>
 opencv-contrib-python
 numpy
 pandas
 tensorflow
 mediapipe
 streamlit-webrtc
---upgrade pip
 gTTS==2.5.4
+pyttsx3
+opencv-python
+requests
+kaggle
