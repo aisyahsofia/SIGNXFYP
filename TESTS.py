@@ -213,25 +213,23 @@ def detect_asl_sign(landmarks):
         20: "V", 21: "W", 22: "X", 23: "Y"
     }
 
+    # Here you would compare the distance between key landmarks and match to the corresponding letter
+    # In this example, we assume "A" is detected just as a placeholder.
+
     # Placeholder logic for detecting "A" (you need to adjust this to detect real signs)
+    # Check if index finger and thumb are touching (like in ASL "A")
     if landmarks:
         thumb_tip = landmarks[4]  # Thumb tip (Landmark 4)
         index_tip = landmarks[8]  # Index tip (Landmark 8)
 
-        # Debug: print landmarks and check if the distance is calculated correctly
-        print(f"Thumb tip coordinates: ({thumb_tip.x}, {thumb_tip.y})")
-        print(f"Index tip coordinates: ({index_tip.x}, {index_tip.y})")
-        
         # Compute Euclidean distance between thumb and index tip
         distance = dist((thumb_tip.x, thumb_tip.y), (index_tip.x, index_tip.y))
         
-        # Debug: print distance
-        print(f"Distance between thumb and index tip: {distance}")
-
         # If the distance is small, we assume it's "A"
         if distance < 0.05:  # Adjust the threshold based on the distance between the fingers
             return "A"
-        
+        # Add more conditions for other letters here
+    
     return "Unknown"  # If the sign cannot be identified
 
 
