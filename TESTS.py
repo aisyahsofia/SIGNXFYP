@@ -1,11 +1,14 @@
 import streamlit as st
 import pandas as pd
 import hashlib
+import random
 import cv2
 import numpy as np
 import os
-import tensorflow as tf
-import requests
+
+
+print(cv2.__version__)
+
 
 # File paths
 USERS_FILE = "users.csv"
@@ -98,20 +101,23 @@ def load_progress_data():
 # Login system
 def login():
     st.title("SignX: Next-Gen Technology for Deaf Communications")
-    users_data = load_user_data()
 
+    
+    users_data = load_user_data()
+    
     st.subheader("Login")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
+    
     hashed_password = hash_password(password)
 
     if st.button("Login"):
         if username in users_data['username'].values:
             stored_password = users_data[users_data['username'] == username]['password'].values[0]
             if stored_password == hashed_password:
+                st.success(f"Welcome back, {username}!")
                 st.session_state['logged_in'] = True
                 st.session_state['username'] = username
-                st.success(f"Welcome back, {username}!")
             else:
                 st.error("Invalid password")
         else:
@@ -142,14 +148,33 @@ def sign_up():
 def training():
     st.subheader("Sign Language Training")
     selected_phrase = st.selectbox("Choose a phrase to learn", list(SIGN_LANGUAGE_DATA.keys()))
-
+    
     if selected_phrase:
         st.write(f"Phrase: {selected_phrase}")
         video_url = SIGN_LANGUAGE_DATA[selected_phrase]
-        st.video(video_url)
-
+        try:
+            st.video(video_url)
+        except Exception as e:
+            st.error(f"Error loading video: {str(e)}")
+        
         if st.button(f"Mark {selected_phrase} as learned"):
             track_progress(st.session_state['username'], selected_phrase)
+
+# ASL alphabet training with dropdown
+def asl_alphabet_training():
+    st.subheader("Learn the ASL Alphabet")
+    selected_letter = st.selectbox("Choose a letter to learn", list(ASL_ALPHABET.keys()))
+    
+    if selected_letter:
+        st.write(f"Letter: {selected_letter}")
+        video_url = ASL_ALPHABET[selected_letter]
+        try:
+            st.video(video_url)
+        except Exception as e:
+            st.error(f"Error loading video: {str(e)}")
+        
+        if st.button(f"Mark {selected_letter} as learned"):
+            track_progress(st.session_state['username'], selected_letter)
 
 # Performance tracking
 def track_progress(username, phrase):
@@ -159,103 +184,169 @@ def track_progress(username, phrase):
     save_progress_data(progress_data)
     st.success(f"'{phrase}' marked as learned!")
 
-import streamlit as st
+# Display user progress
+def show_progress(username):
+    st.subheader("Your Learning Progress")
+    progress_data = load_progress_data()
+    user_progress = progress_data[progress_data['username'] == username]
+    if user_progress.empty:
+        st.write("No progress yet.")
+    else:
+        st.table(user_progress)
+
 import cv2
 import numpy as np
 import tensorflow as tf
-import mediapipe as mp
+from mediapipe import solutions as mp
+import streamlit as st
 
-# Load the trained model
-model = tf.keras.models.load_model("aisyahhand.h5")
-
-# Basic ASL phrases and actions
 # Define basic ASL alphabet (A-Y, excluding J and Z)
 basiccom = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y']
 
-# Initialize MediaPipe holistic for hand and pose detection
+# Model loading (ensure this is your trained model path)
+model = tf.keras.models.load_model('aisyahhand.h5')
+
+# Mediapipe setup for hand landmark detection
 mp_holistic = mp.solutions.holistic
 mp_drawing = mp.solutions.drawing_utils
 
-def mediapipe_detection(image, holistic):
-    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    results = holistic.process(image_rgb)
-    return image, results
+# Real-time SLR (Sign Language Recognition) Model
+sequence = []
+sentence = []
+predictions = []
+threshold = 0.5
+capture = cv2.VideoCapture(0)
+capture.set(3, 1280)
+capture.set(4, 720)
 
-def draw_landmarks(image, results):
-    if results.pose_landmarks:
-        mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
-    if results.left_hand_landmarks:
-        mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
-    if results.right_hand_landmarks:
-        mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
+with mp_holistic.Holistic(min_detection_confidence=0.8, min_tracking_confidence=0.8) as holistic:
+    while capture.isOpened():
+        ret, frame = capture.read()
+        if not ret:
+            break
+        
+        # Flip frame horizontally for a later mirror view
+        frame = cv2.flip(frame, 1)
 
-def extract_keypoints(results):
-    keypoints = []
-    # Pose landmarks
-    if results.pose_landmarks:
-        for landmark in results.pose_landmarks.landmark:
-            keypoints.extend([landmark.x, landmark.y, landmark.z])
-    # Left hand landmarks
-    if results.left_hand_landmarks:
-        for landmark in results.left_hand_landmarks.landmark:
-            keypoints.extend([landmark.x, landmark.y, landmark.z])
-    # Right hand landmarks
-    if results.right_hand_landmarks:
-        for landmark in results.right_hand_landmarks.landmark:
-            keypoints.extend([landmark.x, landmark.y, landmark.z])
-    return keypoints
+        # Process the frame and get results
+        images, results = mediapipe_detection(frame, holistic)
 
-# Real-time sign language recognition loop
-def sign_detection():
-    st.subheader("Sign Detection Camera")
-    st.write("Point your camera to detect ASL signs.")
-    
-    capture = cv2.VideoCapture(0)
-    capture.set(3, 1280)
-    capture.set(4, 720)
-    
-    sequence = []
-    predictions = []
-    threshold = 0.5
-    sentence = []
+        # Draw landmarks on the frame
+        draw_landmarks(images, results)
 
-    with mp_holistic.Holistic(min_detection_confidence=0.8, min_tracking_confidence=0.8) as holistic:
-        while capture.isOpened():
-            ret, frame = capture.read()
-            if not ret:
-                break
+        # Extract keypoints from the detected landmarks
+        keypoints = extract_keypoints(results)
+        
+        # Append keypoints to sequence and trim to a maximum of 30 frames
+        sequence.append(keypoints)
+        sequence = sequence[-30:]
 
-            image, results = mediapipe_detection(frame, holistic)
-            draw_landmarks(image, results)
+        # If we have 30 frames, make a prediction
+        if len(sequence) == 30:
+            # Predict the gesture
+            res = model.predict(np.expand_dims(sequence, axis=0))[0]
+
+            # Get the predicted gesture class
+            predicted_class = np.argmax(res)
             
-            keypoints = extract_keypoints(results)
-            sequence.append(keypoints)
-            sequence = sequence[-30:]  # Keep only the last 30 frames
+            # Display the predicted class on screen
+            st.write(basiccom[predicted_class])
+            
+            predictions.append(predicted_class)
 
-            if len(sequence) == 30:
-                # Predict the gesture
-                res = model.predict(np.expand_dims(sequence, axis=0))[0]
-                print(f"Prediction: {res}")
-                
-                predictions.append(np.argmax(res))
-                if len(predictions) > 10 and np.unique(predictions[-10:])[0] == np.argmax(res):
-                    if res[np.argmax(res)] > threshold:
-                        if len(sentence) > 0 and basiccom[np.argmax(res)] != sentence[-1]:
-                            sentence.append(basiccom[np.argmax(res)])
-                        elif len(sentence) == 0:
-                            sentence.append(basiccom[np.argmax(res)])
+            # If the last 10 predictions are the same, consider it confirmed
+            if np.unique(predictions[-10:])[0] == predicted_class:
+                if res[predicted_class] > threshold:
+                    if len(sentence) > 0 and basiccom[predicted_class] != sentence[-1]:
+                        sentence.append(basiccom[predicted_class])
                     else:
-                        sentence = sentence[-1:]
+                        sentence = [basiccom[predicted_class]]
+            
+        # Visualize the predicted sentence on the screen
+        images = prob_viz(res, basiccom, images, colors)
+        cv2.rectangle(images, (0, 0), (640, 40), (245, 117, 16), -1)
+        cv2.putText(images, ' '.join(sentence), (3, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+        
+        # Show the processed frame with the predicted text
+        cv2.imshow('Sign Language Recognition', images)
+        
+        # Break the loop if 'z' key is pressed
+        if cv2.waitKey(10) & 0xFF == ord('z'):
+            break
 
-            # Display sentence on screen
-            image = cv2.putText(image, " ".join(sentence), (3, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
-            cv2.imshow('Sign Language Recognition', image)
+capture.release()
+cv2.destroyAllWindows()
 
-            if cv2.waitKey(10) & 0xFF == ord('q'):
-                break
+# Quiz feature
+def quiz():
+    st.subheader("Sign Language Quiz")
 
-        capture.release()
-        cv2.destroyAllWindows()
+    # Initialize quiz type and question if not set
+    if 'quiz_type' not in st.session_state:
+        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
+
+    if 'current_question' not in st.session_state:
+        if st.session_state['quiz_type'] == 'word':
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
+        else:
+            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
+            st.session_state['question_data'] = ASL_ALPHABET
+
+    # Display current question and video
+    question = st.session_state['current_question']
+    question_data = st.session_state['question_data']
+    st.write("What does this sign mean?")
+    st.video(question_data[question])
+
+    # Display answer input and Submit button
+    answer = st.text_input("Your answer")
+
+    if 'submitted' not in st.session_state:
+        st.session_state['submitted'] = False
+
+    # Show feedback after Submit
+    if st.button("Submit") and not st.session_state['submitted']:
+        if answer.strip().lower() == question.lower():
+            st.success("Correct!")
+            track_progress(st.session_state['username'], question)
+        else:
+            st.error(f"Incorrect! The correct answer was '{question}'.")
+
+        st.session_state['submitted'] = True  # Set submitted to True after submission
+
+    # Show Next button after feedback is given
+    if st.session_state['submitted'] and st.button("Next"):
+        # Reset submitted state
+        st.session_state['submitted'] = False
+
+        # Select a new question and type
+        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
+        if st.session_state['quiz_type'] == 'word':
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
+        else:
+            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
+            st.session_state['question_data'] = ASL_ALPHABET
+
+
+# Feedback system
+def feedback():
+    st.subheader("Feedback")
+    
+    # Slider for rating (1-5 scale)
+    rating = st.slider("Please rate your experience:", 1, 5, 3)  # Default to 3 (neutral)
+    
+    # Feedback text input
+    feedback_text = st.text_area("Please provide your feedback or suggestions:")
+    
+    if st.button("Submit Feedback"):
+        if feedback_text:
+            st.success(f"Thank you for your feedback! You rated us {rating} out of 5.")
+            # You can add logic here to save the feedback with the rating, e.g., saving to a CSV or a database.
+        else:
+            st.error("Please provide your feedback text.")
+    
 
 # Main app flow
 if 'logged_in' not in st.session_state:
