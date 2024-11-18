@@ -5,7 +5,8 @@ import random
 import numpy as np
 from PIL import Image
 import io
-
+import mediapipe as mp
+from tensorflow.keras.models import load_model
 
 # File paths
 USERS_FILE = "users.csv"
@@ -137,30 +138,6 @@ def sign_up():
         else:
             st.error("Passwords do not match")
 
-# Training module
-def training():
-    st.subheader("Sign Language Training")
-    for phrase, video in SIGN_LANGUAGE_DATA.items():
-        st.write(f"Phrase: {phrase}")
-        try:
-            st.video(video)
-        except Exception as e:
-            st.error(f"Error loading video: {str(e)}")
-        if st.button(f"Mark {phrase} as learned"):
-            track_progress(st.session_state['username'], phrase)
-
-# ASL alphabet training
-def asl_alphabet_training():
-    st.subheader("Learn the ASL Alphabet")
-    for letter, video in ASL_ALPHABET.items():
-        st.write(f"Letter: {letter}")
-        try:
-            st.video(video)
-        except Exception as e:
-            st.error(f"Error loading video: {str(e)}")
-        if st.button(f"Mark {letter} as learned"):
-            track_progress(st.session_state['username'], letter)
-
 # Performance tracking
 def track_progress(username, phrase):
     progress_data = load_progress_data()
@@ -245,55 +222,16 @@ if video is not None:
     # If hand landmarks are detected
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
-            # Draw landmarks on the frame
-            mp_drawing.draw_landmarks(
-                frame,
-                hand_landmarks,
-                mp_hands.HAND_CONNECTIONS,
-                mp_drawing_styles.get_default_hand_landmarks_style(),
-                mp_drawing_styles.get_default_hand_connections_style()
-            )
+            # Draw landmarks on the image
+            mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS, 
+                                      mp_drawing_styles.get_default_hand_landmarks_style(), 
+                                      mp_drawing_styles.get_default_hand_connections_style())
 
-            # Extract normalized landmark coordinates
-            data_aux = []
-            x_ = []
-            y_ = []
-            for landmark in hand_landmarks.landmark:
-                x_.append(landmark.x)
-                y_.append(landmark.y)
+        # Process the detected hand landmarks (you can include your custom logic here to classify the sign)
+        # Example: Convert landmarks to model input and get prediction
 
-            # Create feature vector
-            min_x, min_y = min(x_), min(y_)
-            for landmark in hand_landmarks.landmark:
-                data_aux.append(landmark.x - min_x)
-                data_aux.append(landmark.y - min_y)
-
-            # Ensure correct data format for model prediction
-            if len(data_aux) == expected_input_size:
-                data_aux = np.asarray(data_aux).reshape(1, -1)
-                prediction = model.predict(data_aux)
-
-                # Get predicted class and probability
-                predicted_class_index = np.argmax(prediction, axis=1)[0]
-                predicted_probability = prediction[0][predicted_class_index]
-
-                if predicted_probability >= 0.3:
-                    predicted_character = label_dict.get(str(predicted_class_index), 'Unknown')
-                else:
-                    predicted_character = 'Unknown'
-
-                # Draw prediction on the frame (show in Streamlit as a label)
-                x1 = int(min(x_) * frame.shape[1]) - 10
-                y1 = int(min(y_) * frame.shape[0]) - 10
-                x2 = int(max(x_) * frame.shape[1]) + 10
-                y2 = int(max(y_) * frame.shape[0]) + 10
-
-                # Show the predicted character and confidence
-                st.text(f"Predicted Character: {predicted_character} ({predicted_probability * 100:.2f}%)")
-                st.text(f"Bounding Box Coordinates: ({x1}, {y1}) to ({x2}, {y2})")
-
-    # Display the frame with annotations
-    st.image(frame, channels="RGB")
+    st.image(frame)  # Display the image in Streamlit
+    st.text("Sign detected: ... (prediction output here)")  # Display prediction
 
 # Quiz feature
 def quiz():
