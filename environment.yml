@@ -13,3 +13,4 @@ dependencies:
     - numpy
     - tensorflow
     - pandas
+    - kaggle-1.6.17
