@@ -197,86 +197,64 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
+import streamlit as st
 import cv2
 import mediapipe as mp
 import numpy as np
-import streamlit as st
-from tensorflow.keras.models import load_model
-from PIL import Image
+import tensorflow as tf
+import requests
+import os
+import json
 
-from tensorflow.keras.models import load_model
+# Set Streamlit page configuration
+st.set_page_config(
+    page_title="Sign Language Detection",
+    page_icon="🤟",
+    layout="wide"
+)
 
-try:
-    model = load_model("./final/data/keras/AisyahSignX100.keras")
-    st.write("Model loaded successfully.")
-except ValueError as e:
-    st.error(f"Error loading model: {str(e)}")
-except Exception as e:
-    st.error(f"Unexpected error: {str(e)}")
+# Define paths to GitHub files
+MODEL_URL = "https://github.com/aisyahsofia/SIGNXFYP/raw/main/AisyahSignX100.keras"
+LABELS_URL = "https://github.com/aisyahsofia/SIGNXFYP/raw/main/compile.json"
+TEMP_MODEL_PATH = "model.keras"
+TEMP_LABELS_PATH = "labels.json"
 
-# Check the model's input shape to determine the expected input size
-expected_input_size = model.input_shape[1]  # Adjust based on your model's input shape
+# Download files from GitHub if not already present locally
+def download_file(url, local_path):
+    if not os.path.exists(local_path):
+        with open(local_path, "wb") as f:
+            response = requests.get(url)
+            f.write(response.content)
 
-# Set up MediaPipe Hands
+download_file(MODEL_URL, TEMP_MODEL_PATH)
+download_file(LABELS_URL, TEMP_LABELS_PATH)
+
+# Load the model and labels
+model = tf.keras.models.load_model(TEMP_MODEL_PATH)
+with open(TEMP_LABELS_PATH, "r") as f:
+    label_dict = json.load(f)
+
+# Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
-
 hands = mp_hands.Hands(
-    static_image_mode=False,  # Set to False for continuous detection
-    max_num_hands=1,  # Detect one hand at a time for simplicity
+    static_image_mode=False,
+    max_num_hands=1,
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5
 )
 
-# Label dictionary for mapping predicted indices to characters, excluding 'J' and 'Z'
-label_dict = {
-    '0': 'A',
-    '1': 'B',
-    '2': 'C',
-    '3': 'D',
-    '4': 'E',
-    '5': 'F',
-    '6': 'G',
-    '7': 'H',
-    '8': 'I',
-    '9': 'K',
-    '10': 'L',
-    '11': 'M',
-    '12': 'N',
-    '13': 'O',
-    '14': 'P',
-    '15': 'Q',
-    '16': 'R',
-    '17': 'S',
-    '18': 'T',
-    '19': 'U',
-    '20': 'V',
-    '21': 'W',
-    '22': 'X',
-    '23': 'Y',
-}
-
-# Streamlit page configuration
-st.title("Sign Language Recognition with Streamlit")
-
-# Use Streamlit camera input widget for capturing video
-camera_input = st.camera_input("Capture your hand gesture")
-
-# Check if a frame is captured
-if camera_input:
-    # Convert the captured image to an OpenCV format
-    frame = Image.open(camera_input)
-    frame = np.array(frame)
-    
-    # Convert frame to RGB for MediaPipe processing
+# Define a function to process the video frame
+def process_frame(frame):
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = hands.process(frame_rgb)
 
-    # If hand landmarks are detected
+    detected_character = None
+
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
-            # Draw landmarks on the frame
+            # Draw landmarks
             mp_drawing.draw_landmarks(
                 frame,
                 hand_landmarks,
@@ -285,49 +263,59 @@ if camera_input:
                 mp_drawing_styles.get_default_hand_connections_style()
             )
 
-            # Extract normalized landmark coordinates
+            # Extract landmark data
             data_aux = []
             x_ = []
             y_ = []
             for landmark in hand_landmarks.landmark:
                 x_.append(landmark.x)
                 y_.append(landmark.y)
-
-            # Create feature vector
             min_x, min_y = min(x_), min(y_)
             for landmark in hand_landmarks.landmark:
                 data_aux.append(landmark.x - min_x)
                 data_aux.append(landmark.y - min_y)
 
-            # Ensure correct data format for model prediction
-            if len(data_aux) == expected_input_size:
-                data_aux = np.asarray(data_aux).reshape(1, -1)
+            # Ensure data format matches model input
+            if len(data_aux) == model.input_shape[1]:
+                data_aux = np.array(data_aux).reshape(1, -1)
                 prediction = model.predict(data_aux)
+                predicted_index = np.argmax(prediction)
+                confidence = prediction[0][predicted_index]
 
-                # Get predicted class and probability
-                predicted_class_index = np.argmax(prediction, axis=1)[0]
-                predicted_probability = prediction[0][predicted_class_index]
+                if confidence >= 0.3:
+                    detected_character = label_dict.get(str(predicted_index), "Unknown")
+                    cv2.putText(frame, f"{detected_character} ({confidence*100:.2f}%)",
+                                (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-                if predicted_probability >= 0.3:
-                    predicted_character = label_dict.get(str(predicted_class_index), 'Unknown')
-                else:
-                    predicted_character = 'Unknown'
+    return frame, detected_character
 
-                # Draw prediction on the frame
-                x1 = int(min(x_) * frame.shape[1]) - 10
-                y1 = int(min(y_) * frame.shape[0]) - 10
-                x2 = int(max(x_) * frame.shape[1]) + 10
-                y2 = int(max(y_) * frame.shape[0]) + 10
+# Main Streamlit app
+st.title("Sign Language Recognition")
+st.write("This app uses a video feed to detect and recognize ASL signs.")
 
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (72, 61, 139), 4)
-                cv2.putText(frame, f'{predicted_character} ({predicted_probability * 100:.2f}%)',
-                            (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.3, (72, 61, 139), 3, cv2.LINE_AA)
+# Video capture logic
+run = st.checkbox("Start Video Capture")
 
-    # Display the processed frame
-    st.image(frame, channels="BGR")
+if run:
+    stframe = st.empty()
+    cap = cv2.VideoCapture(0)
 
-else:
-    st.write("Please allow access to your camera.")
+    if not cap.isOpened():
+        st.error("Error: Unable to access the camera.")
+    else:
+        while run:
+            ret, frame = cap.read()
+            if not ret:
+                st.error("Error: Unable to capture video frame.")
+                break
+
+            # Process the frame for sign detection
+            frame, detected_character = process_frame(frame)
+
+            # Display the video frame
+            stframe.image(frame, channels="BGR", use_column_width=True)
+
+        cap.release()
 
 
 # Quiz feature
