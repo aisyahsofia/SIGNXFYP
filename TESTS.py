@@ -261,7 +261,7 @@ def start_video_capture():
 # Main content
 def main():
     st.sidebar.title("SignX Menu")
-    selection = st.sidebar.radio("Choose an option", ["Login", "Sign Up", "Training", "ASL Alphabet", "Progress", "Video Capture"])
+    selection = st.sidebar.radio("Choose an option", ["Login", "Sign Up", "Training", "ASL Alphabet", "Progress", "Video Capture"], key="sidebar_radio")
 
     # For mobile-friendly or camera capture
     if selection == "Video Capture":
