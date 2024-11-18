@@ -3,7 +3,6 @@ import pandas as pd
 import hashlib
 import random
 import numpy as np
-import os
 from tensorflow.keras.models import load_model
 from PIL import Image
 import io
