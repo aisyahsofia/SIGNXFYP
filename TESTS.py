@@ -208,8 +208,8 @@ def sign_detection():
 
         # Placeholder for model predictions
         # You can integrate a machine learning model here for sign recognition
-        # For this example, let's assume the model recognized "Hello"
-        detected_sign = "Hello"  # Placeholder for detected sign
+        # For this example, let's assume the model recognized "A"
+        detected_sign = "A"  # Placeholder for detected sign
 
         st.image(image, caption="Captured Sign", use_column_width=True)
 
