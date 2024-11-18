@@ -7,9 +7,6 @@ from PIL import Image
 import io
 
 
-print(cv2.__version__)
-
-
 # File paths
 USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
