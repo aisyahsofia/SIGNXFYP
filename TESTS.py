@@ -206,10 +206,12 @@ def sign_detection():
     if camera_input is not None:
         image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
 
-        # Placeholder for model predictions
-        # You can integrate a machine learning model here for sign recognition
-        # For this example, let's assume the model recognized "A"
-        detected_sign = "A"  # Placeholder for detected sign
+        def map_sign_to_valid_range(detected_sign):
+    valid_signs = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y']
+    if detected_sign in valid_signs:
+        return detected_sign
+    else:
+        return "Invalid Sign"
 
         st.image(image, caption="Captured Sign", use_column_width=True)
 
