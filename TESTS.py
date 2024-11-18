@@ -196,44 +196,44 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
-# Sign detection function with Streamlit integration
+# Camera feature for sign detection
 def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
-
-    # Capture input from the camera
+    
     camera_input = st.camera_input("Capture Image of your Sign")
 
-    if camera_input is not None:
-        # Convert the camera input to an image
-        image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
+    # Function to map detected signs to valid ones (A-Y, no J and Z)
+def map_sign_to_valid_range(detected_sign):
+    valid_signs = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y']
+    if detected_sign in valid_signs:
+        return detected_sign
+    else:
+        return "Invalid Sign"  # In case an invalid sign (like J or Z) is detected
 
-        # Get the detected sign, bounding box, and confidence score
-        detected_sign, bounding_box, confidence = detect_sign(image)
+# Assuming camera_input is provided (image captured via camera)
+if camera_input is not None:
+    # Decode the image from the camera input buffer
+    image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
 
+    # Placeholder for model predictions (you'd replace this with actual ML model code)
+    detected_sign = "A"  # Replace with actual sign detection logic
+
+    # Map the detected sign to a valid one (A-Y)
+    detected_sign = map_sign_to_valid_range(detected_sign)
+
+    # Display the captured image and detected sign
+    st.image(image, caption=f"Captured Sign: {detected_sign}", use_column_width=True)
+    
+        # Simulate progress tracking for the recognized sign
         if detected_sign:
-            st.write(f"Detected Sign: {detected_sign} with confidence {confidence}")
-        else:
-            st.write("No sign detected")
+            st.write(f"Detected sign: {detected_sign}")
+            if st.button(f"Mark '{detected_sign}' as learned"):
+                track_progress(st.session_state['username'], detected_sign)
+                st.success(f"'{detected_sign}' marked as learned!")
 
-# Sign detection using a trained model
-def detect_sign(image):
-    # Assuming 'your_model.h5' is the trained model for sign detection
-    model = tf.keras.models.load_model("aisyahhand.h5")
-    # Preprocess the image for prediction (e.g., resize and normalize)
-    image = cv2.resize(image, (64, 64))  # Resize to model input size
-    image = image / 255.0  # Normalize the image
-
-    image = np.expand_dims(image, axis=0)  # Add batch dimension
-
-    prediction = model.predict(image)
-    class_index = np.argmax(prediction, axis=1)
-
-    # Mapping of predicted class index to sign language labels
-    signs = list(SIGN_LANGUAGE_DATA.keys())
-    detected_sign = signs[class_index[0]]
-
-    return detected_sign, None, prediction[0][class_index[0]]  # Return detected sign and confidence score
+    else:
+        st.error("No image captured yet.")
 
 # Quiz feature
 def quiz():
