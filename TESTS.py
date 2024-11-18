@@ -196,14 +196,11 @@ def show_progress(username):
     else:
         st.table(user_progress)
 
-# Camera feature for sign detection
-def sign_detection():
-    st.subheader("Sign Detection Camera")
-    st.write("Point your camera to detect ASL signs.")
-    
-    camera_input = st.camera_input("Capture Image of your Sign")
+import cv2
+import numpy as np
+import streamlit as st
 
-    # Function to map detected signs to valid ones (A-Y, no J and Z)
+# Function to map detected signs to valid ones (A-Y, no J and Z)
 def map_sign_to_valid_range(detected_sign):
     valid_signs = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y']
     if detected_sign in valid_signs:
@@ -211,29 +208,55 @@ def map_sign_to_valid_range(detected_sign):
     else:
         return "Invalid Sign"  # In case an invalid sign (like J or Z) is detected
 
-# Assuming camera_input is provided (image captured via camera)
-if camera_input is not None:
-    # Decode the image from the camera input buffer
-    image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
+# Simulate tracking progress for a recognized sign
+def track_progress(username, sign):
+    # For demonstration purposes, we're simulating progress tracking.
+    # Replace this with actual logic to track user progress in your app's backend.
+    st.session_state[username]['learned_signs'].append(sign)
 
-    # Placeholder for model predictions (you'd replace this with actual ML model code)
-    detected_sign = "A"  # Replace with actual sign detection logic
-
-    # Map the detected sign to a valid one (A-Y)
-    detected_sign = map_sign_to_valid_range(detected_sign)
-
-    # Display the captured image and detected sign
-    st.image(image, caption=f"Captured Sign: {detected_sign}", use_column_width=True)
+# Camera feature for sign detection
+def sign_detection():
+    st.subheader("Sign Detection Camera")
+    st.write("Point your camera to detect ASL signs.")
     
+    # Capture image input from the camera
+    camera_input = st.camera_input("Capture Image of your Sign")
+
+    if camera_input is not None:
+        # Decode the image from the camera input buffer
+        image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
+
+        # Placeholder for model predictions (you'd replace this with actual ML model code)
+        detected_sign = "A"  # Replace with actual sign detection logic
+
+        # Map the detected sign to a valid one (A-Y)
+        detected_sign = map_sign_to_valid_range(detected_sign)
+
+        # Display the captured image and detected sign
+        st.image(image, caption=f"Captured Sign: {detected_sign}", use_column_width=True)
+        
         # Simulate progress tracking for the recognized sign
         if detected_sign:
             st.write(f"Detected sign: {detected_sign}")
             if st.button(f"Mark '{detected_sign}' as learned"):
+                # Assuming you have a 'username' in session state for tracking
+                if 'username' not in st.session_state:
+                    st.session_state['username'] = 'user'  # For demo, set a default username
+                if 'learned_signs' not in st.session_state[st.session_state['username']]:
+                    st.session_state[st.session_state['username']] = {'learned_signs': []}
+
                 track_progress(st.session_state['username'], detected_sign)
                 st.success(f"'{detected_sign}' marked as learned!")
-
     else:
         st.error("No image captured yet.")
+
+# Initialize session state for user (you can modify this for your app's user management)
+if 'username' not in st.session_state:
+    st.session_state['username'] = 'user'  # Default username for demo
+
+# Call the sign detection function
+sign_detection()
+
 
 # Quiz feature
 def quiz():
