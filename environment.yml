@@ -6,6 +6,7 @@ dependencies:
   - python=3.9
   - pip
   - pip:
+    - gdown
     - streamlit
     - opencv-python
     - mediapipe
