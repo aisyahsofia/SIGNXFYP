@@ -207,7 +207,7 @@ def sign_detection():
         image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
 
         def map_sign_to_valid_range(detected_sign):
-    valid_signs = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y']
+        valid_signs = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y']
     if detected_sign in valid_signs:
         return detected_sign
     else:
