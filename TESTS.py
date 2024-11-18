@@ -200,6 +200,9 @@ import numpy as np
 import requests
 import streamlit as st
 
+import os
+print(os.getcwd())
+
 # Download and load the model
 file_url = "https://drive.google.com/uc?id=1K5cGREmfJ9DVnT8DQ5p5qnzqnlFrZrvR"
 response = requests.get(file_url)
