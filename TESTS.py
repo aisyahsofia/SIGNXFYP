@@ -15,61 +15,58 @@ USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
 SIGN_DATA_FILE = "sign_language_data.csv"
 
-# Base URL for GitHub raw files
-BASE_URL = "https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/"
-
 # Sign language data for training
 SIGN_LANGUAGE_DATA = {
-    "Hello": f"{BASE_URL}HELLO%20ASL.mp4",
-    "Thank You": f"{BASE_URL}THANKYOU.mp4",
-    "Sorry": f"{BASE_URL}SORRY%20ASL.mp4",
-    "Please": f"{BASE_URL}PLEASE%20ASL.mp4",
-    "Yes": f"{BASE_URL}YES%20ASL.mp4",
-    "No": f"{BASE_URL}NO%20ASL.mp4",
-    "How Are You?": f"{BASE_URL}HOWAREYOU%20ASL.mp4",
-    "My Name Is...": f"{BASE_URL}MYNAMEIS%20ASL.mp4",
-    "What Is Your Name?": f"{BASE_URL}WHATISYOURNAME%20ASL.mp4",
-    "I Am Deaf": f"{BASE_URL}IMDEAF%20ASL.mp4",
-    "I Am Hearing": f"{BASE_URL}IMHEARING%20ASL.mp4",
-    "Where Is the Toilet?": f"{BASE_URL}WHEREISTHETOILET%20ASL.mp4",
-    "Help me": f"{BASE_URL}HELPME%20ASL.mp4",
-    "I Love You": f"{BASE_URL}ILOVEYOU%20ASL.mp4",
-    "See You Later": f"{BASE_URL}SEEYOULATER%20ASL.mp4",
-    "Good Morning": f"{BASE_URL}GOODMORNING%20ASL.mp4",
-    "Good Afternoon": f"{BASE_URL}GOODAFTERNOON%20ASL.mp4",
-    "Good Evening": f"{BASE_URL}GOODEVENING%20ASL.mp4",
-    "Good Night": f"{BASE_URL}GOODNIGHT%20ASL.mp4",
-    "Goodbye": f"{BASE_URL}GOODBYE%20ASL.mp4",
+    "Hello": "HELLO ASL.mp4",
+    "Good Morning": "GOODMORNING ASL.mp4",
+    "Good Afternoon": "GOODAFTERNOON ASL.mp4",
+    "Good Evening": "GOODEVENING ASL.mp4",
+    "Good Night": "GOODNIGHT ASL.mp4",
+    "Thank You": "THANKYOU.mp4",
+    "Sorry": "SORRY ASL.mp4",
+    "Please": "PLEASE ASL.mp4",
+    "Yes": "YES ASL.mp4",
+    "No": "NO ASL.mp4",
+    "How Are You?": "HOWAREYOU ASL.mp4",
+    "My Name Is...": "MYNAMEIS ASL.mp4",
+    "What Is Your Name?": "WHATISYOURNAME ASL.mp4",
+    "I Am Deaf": "IMDEAF ASL.mp4",
+    "I Am Hearing": "IMHEARING ASL.mp4",
+    "Where Is the Toilet?": "WHEREISTHETOILET ASL.mp4",
+    "Help me": "HELPME ASL.mp4",
+    "I Love You": "ILOVEYOU ASL.mp4",
+    "See You Later": "SEEYOULATER ASL.mp4",
+    "Goodbye": "GOODBYE ASL.mp4",
 }
 
 # Basic ASL alphabet
 ASL_ALPHABET = {
-    'A': f"{BASE_URL}A%20ASL.mp4",
-    'B': f"{BASE_URL}B%20ASL.mp4",
-    'C': f"{BASE_URL}C%20ASL.mp4",
-    'D': f"{BASE_URL}D%20ASL.mp4",
-    'E': f"{BASE_URL}E%20ASL.mp4",
-    'F': f"{BASE_URL}F%20ASL.mp4",
-    'G': f"{BASE_URL}G%20ASL.mp4",
-    'H': f"{BASE_URL}H%20ASL.mp4",
-    'I': f"{BASE_URL}I%20ASL.mp4",
-    'J': f"{BASE_URL}J%20ASL.mp4",
-    'K': f"{BASE_URL}K%20ASL.mp4",
-    'L': f"{BASE_URL}L%20ASL.mp4",
-    'M': f"{BASE_URL}M%20ASL.mp4",
-    'N': f"{BASE_URL}N%20ASL.mp4",
-    'O': f"{BASE_URL}O%20ASL.mp4",
-    'P': f"{BASE_URL}P%20ASL.mp4",
-    'Q': f"{BASE_URL}Q%20ASL.mp4",
-    'R': f"{BASE_URL}R%20ASL.mp4",
-    'S': f"{BASE_URL}S%20ASL.mp4",
-    'T': f"{BASE_URL}T%20ASL.mp4",
-    'U': f"{BASE_URL}U%20ASL.mp4",
-    'V': f"{BASE_URL}V%20ASL.mp4",
-    'W': f"{BASE_URL}W%20ASL.mp4",
-    'X': f"{BASE_URL}X%20ASL.mp4",
-    'Y': f"{BASE_URL}Y%20ASL.mp4",
-    'Z': f"{BASE_URL}Z%20ASL.mp4"
+    'A': 'A ASL.mp4',
+    'B': 'B ASL.mp4',
+    'C': 'C ASL.mp4',
+    'D': 'D ASL.mp4',
+    'E': 'E ASL.mp4',
+    'F': 'F ASL.mp4',
+    'G': 'G ASL.mp4',
+    'H': 'H ASL.mp4',
+    'I': 'I ASL.mp4',
+    'J': 'J ASL.mp4',
+    'K': 'K ASL.mp4',
+    'L': 'L ASL.mp4',
+    'M': 'M ASL.mp4',
+    'N': 'N ASL.mp4',
+    'O': 'O ASL.mp4',
+    'P': 'P ASL.mp4',
+    'Q': 'Q ASL.mp4',
+    'R': 'R ASL.mp4',
+    'S': 'S ASL.mp4',
+    'T': 'T ASL.mp4',
+    'U': 'U ASL.mp4',
+    'V': 'V ASL.mp4',
+    'W': 'W ASL.mp4',
+    'X': 'X ASL.mp4',
+    'Y': 'Y ASL.mp4',
+    'Z': 'Z ASL.mp4'
 }
 
 # Hashing function for passwords
@@ -101,7 +98,6 @@ def load_progress_data():
 # Login system
 def login():
     st.title("SignX: Next-Gen Technology for Deaf Communications")
-
     
     users_data = load_user_data()
     
@@ -144,37 +140,29 @@ def sign_up():
         else:
             st.error("Passwords do not match")
 
-# Training module with dropdown
+# Training module
 def training():
     st.subheader("Sign Language Training")
-    selected_phrase = st.selectbox("Choose a phrase to learn", list(SIGN_LANGUAGE_DATA.keys()))
-    
-    if selected_phrase:
-        st.write(f"Phrase: {selected_phrase}")
-        video_url = SIGN_LANGUAGE_DATA[selected_phrase]
+    for phrase, video in SIGN_LANGUAGE_DATA.items():
+        st.write(f"Phrase: {phrase}")
         try:
-            st.video(video_url)
+            st.video(video)
         except Exception as e:
             st.error(f"Error loading video: {str(e)}")
-        
-        if st.button(f"Mark {selected_phrase} as learned"):
-            track_progress(st.session_state['username'], selected_phrase)
+        if st.button(f"Mark {phrase} as learned"):
+            track_progress(st.session_state['username'], phrase)
 
-# ASL alphabet training with dropdown
+# ASL alphabet training
 def asl_alphabet_training():
     st.subheader("Learn the ASL Alphabet")
-    selected_letter = st.selectbox("Choose a letter to learn", list(ASL_ALPHABET.keys()))
-    
-    if selected_letter:
-        st.write(f"Letter: {selected_letter}")
-        video_url = ASL_ALPHABET[selected_letter]
+    for letter, video in ASL_ALPHABET.items():
+        st.write(f"Letter: {letter}")
         try:
-            st.video(video_url)
+            st.video(video)
         except Exception as e:
             st.error(f"Error loading video: {str(e)}")
-        
-        if st.button(f"Mark {selected_letter} as learned"):
-            track_progress(st.session_state['username'], selected_letter)
+        if st.button(f"Mark {letter} as learned"):
+            track_progress(st.session_state['username'], letter)
 
 # Performance tracking
 def track_progress(username, phrase):
@@ -182,7 +170,7 @@ def track_progress(username, phrase):
     new_entry = pd.DataFrame([[username, phrase]], columns=["username", "phrase"])
     progress_data = pd.concat([progress_data, new_entry], ignore_index=True)
     save_progress_data(progress_data)
-    st.success(f"'{phrase}' marked as learned!")
+    st.success(f"{phrase} marked as learned!")
 
 # Display user progress
 def show_progress(username):
@@ -203,94 +191,41 @@ def sign_detection():
 
     if camera_input is not None:
         image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
-
+        
         # Placeholder for model predictions
-        # You can integrate a machine learning model here for sign recognition
-        # For this example, let's assume the model recognized "Hello"
-        detected_sign = "Hello"  # Placeholder for detected sign
-
-        st.image(image, caption="Captured Sign", use_column_width=True)
-
-        # Simulate progress tracking for the recognized sign
-        if detected_sign:
-            st.write(f"Detected sign: {detected_sign}")
-            if st.button(f"Mark '{detected_sign}' as learned"):
-                track_progress(st.session_state['username'], detected_sign)
-                st.success(f"'{detected_sign}' marked as learned!")
-
+        st.write("This feature requires a model for sign detection.")
     else:
         st.error("No image captured yet.")
 
 # Quiz feature
 def quiz():
     st.subheader("Sign Language Quiz")
-
-    # Initialize quiz type and question if not set
-    if 'quiz_type' not in st.session_state:
-        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
-
+    
     if 'current_question' not in st.session_state:
-        if st.session_state['quiz_type'] == 'word':
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
-        else:
-            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
-            st.session_state['question_data'] = ASL_ALPHABET
+        st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
 
-    # Display current question and video
     question = st.session_state['current_question']
-    question_data = st.session_state['question_data']
-    st.write("What does this sign mean?")
-    st.video(question_data[question])
+    
+    st.write(f"What does this sign mean?")
+    st.video(SIGN_LANGUAGE_DATA[question])
 
-    # Display answer input and Submit button
     answer = st.text_input("Your answer")
 
-    if 'submitted' not in st.session_state:
-        st.session_state['submitted'] = False
-
-    # Show feedback after Submit
-    if st.button("Submit") and not st.session_state['submitted']:
+    if st.button("Submit"):
         if answer.strip().lower() == question.lower():
             st.success("Correct!")
             track_progress(st.session_state['username'], question)
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
         else:
             st.error(f"Incorrect! The correct answer was '{question}'.")
-
-        st.session_state['submitted'] = True  # Set submitted to True after submission
-
-    # Show Next button after feedback is given
-    if st.session_state['submitted'] and st.button("Next"):
-        # Reset submitted state
-        st.session_state['submitted'] = False
-
-        # Select a new question and type
-        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
-        if st.session_state['quiz_type'] == 'word':
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
-        else:
-            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
-            st.session_state['question_data'] = ASL_ALPHABET
-
 
 # Feedback system
 def feedback():
     st.subheader("Feedback")
-    
-    # Slider for rating (1-5 scale)
-    rating = st.slider("Please rate your experience:", 1, 5, 3)  # Default to 3 (neutral)
-    
-    # Feedback text input
     feedback_text = st.text_area("Please provide your feedback or suggestions:")
-    
     if st.button("Submit Feedback"):
         if feedback_text:
-            st.success(f"Thank you for your feedback! You rated us {rating} out of 5.")
-            # You can add logic here to save the feedback with the rating, e.g., saving to a CSV or a database.
-        else:
-            st.error("Please provide your feedback text.")
-    
+            st.success("Thank you for your feedback!")
 
 # Main app flow
 if 'logged_in' not in st.session_state:
