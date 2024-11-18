@@ -198,42 +198,47 @@ import streamlit as st
 import cv2
 import numpy as np
 import mediapipe as mp
+from keras.models import load_model
+import gdown
 from math import dist
+
+# Download the model from Google Drive
+def download_model():
+    # Provide the Google Drive link
+    model_url = 'https://drive.google.com/uc?id=1K5cGREmfJ9DVnT8DQ5p5qnzqnlFrZrvR'  # Change this to your model link
+    output = '/tmp/keras_model.h5'  # The location where the model will be saved
+    gdown.download(model_url, output, quiet=False)
+    model = load_model(output)
+    return model
+
+# Load Keras model
+model = download_model()
 
 # Load Mediapipe hand tracking module
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands()
 
-# Define a function to detect ASL based on landmarks
-def detect_asl_sign(landmarks):
-    # Define ASL alphabet signs based on hand landmarks
-    asl_alphabet = {
-        0: "A", 1: "B", 2: "C", 3: "D", 4: "E", 5: "F", 6: "G", 7: "H", 8: "I", 9: "K",
-        10: "L", 11: "M", 12: "N", 13: "O", 14: "P", 15: "Q", 16: "R", 17: "S", 18: "T", 19: "U",
-        20: "V", 21: "W", 22: "X", 23: "Y"
-    }
+# Define a function to preprocess landmarks for the model
+def preprocess_landmarks(landmarks):
+    # Extract x, y coordinates for each landmark (22 landmarks for a hand)
+    processed = np.array([[landmark.x, landmark.y] for landmark in landmarks]).flatten()
+    return processed.reshape(1, -1)  # Reshape to match model input
 
-    # Placeholder logic for detecting "A" (you need to adjust this to detect real signs)
-    if landmarks:
-        thumb_tip = landmarks[4]  # Thumb tip (Landmark 4)
-        index_tip = landmarks[8]  # Index tip (Landmark 8)
+# Define a function to detect ASL based on hand landmarks using the Keras model
+def detect_asl_sign(model, landmarks):
+    # Preprocess landmarks and feed them to the Keras model for prediction
+    processed_landmarks = preprocess_landmarks(landmarks)
+    prediction = model.predict(processed_landmarks)
 
-        # Debug: print landmarks and check if the distance is calculated correctly
-        print(f"Thumb tip coordinates: ({thumb_tip.x}, {thumb_tip.y})")
-        print(f"Index tip coordinates: ({index_tip.x}, {index_tip.y})")
-        
-        # Compute Euclidean distance between thumb and index tip
-        distance = dist((thumb_tip.x, thumb_tip.y), (index_tip.x, index_tip.y))
-        
-        # Debug: print distance
-        print(f"Distance between thumb and index tip: {distance}")
+    # Assuming the model outputs a probability distribution for 26 letters (A-Z)
+    # Get the index of the highest probability
+    predicted_index = np.argmax(prediction)
 
-        # If the distance is small, we assume it's "A"
-        if distance < 0.05:  # Adjust the threshold based on the distance between the fingers
-            return "A"
-        
-    return "Unknown"  # If the sign cannot be identified
+    # Map the predicted index to an ASL letter (A-Z)
+    asl_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    detected_sign = asl_letters[predicted_index]
 
+    return detected_sign
 
 # Camera feature for sign detection
 def sign_detection():
@@ -258,7 +263,7 @@ def sign_detection():
                 landmarks = hand_landmarks.landmark
 
                 # Get the detected ASL sign based on the landmarks
-                detected_sign = detect_asl_sign(landmarks)
+                detected_sign = detect_asl_sign(model, landmarks)
 
                 # Draw the landmarks on the hand
                 mp.solutions.drawing_utils.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
