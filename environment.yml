@@ -5,11 +5,12 @@ channels:
 dependencies:
   - python=3.9
   - pip
+  - numpy=1.23.1
+  - pandas=2.2.3
+  - matplotlib=3.7.0
+  - opencv
+  - mediapipe
+  - tensorflow=2.12.0
   - pip:
-      - streamlit
-      - opencv-python
-      - mediapipe
-      - numpy
-      - tensorflow
-      - pandas
-      - matplotlib
+      - streamlit==1.40.0
+      - gtts
