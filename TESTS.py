@@ -204,13 +204,13 @@ import streamlit as st
 from tensorflow.keras.models import load_model
 from PIL import Image
 
+from tensorflow.keras.models import load_model
+
 try:
     model = load_model("./final/data/keras/AisyahSignX100.keras")
-    st.write("Model loaded successfully.")
-except ValueError as e:
-    st.error(f"Error loading model: {str(e)}")
+    print("Model loaded successfully.")
 except Exception as e:
-    st.error(f"Unexpected error: {str(e)}")
+    print(f"Error: {e}")
 
 # Check the model's input shape to determine the expected input size
 expected_input_size = model.input_shape[1]  # Adjust based on your model's input shape
