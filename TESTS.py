@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import hashlib
 import random
-import cv2
 import numpy as np
 import os
 from tensorflow.keras.models import load_model
