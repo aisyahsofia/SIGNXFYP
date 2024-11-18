@@ -9,10 +9,6 @@ from tensorflow.keras.models import load_model
 import mediapipe as mp
 import requests
 
-
-print(cv2.__version__)
-
-
 # File paths
 USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
@@ -105,13 +101,12 @@ def load_progress_data():
 def login():
     st.title("SignX: Next-Gen Technology for Deaf Communications")
 
-    
     users_data = load_user_data()
-    
+
     st.subheader("Login")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
-    
+
     hashed_password = hash_password(password)
 
     if st.button("Login"):
@@ -151,7 +146,7 @@ def sign_up():
 def training():
     st.subheader("Sign Language Training")
     selected_phrase = st.selectbox("Choose a phrase to learn", list(SIGN_LANGUAGE_DATA.keys()))
-    
+
     if selected_phrase:
         st.write(f"Phrase: {selected_phrase}")
         video_url = SIGN_LANGUAGE_DATA[selected_phrase]
@@ -159,7 +154,7 @@ def training():
             st.video(video_url)
         except Exception as e:
             st.error(f"Error loading video: {str(e)}")
-        
+
         if st.button(f"Mark {selected_phrase} as learned"):
             track_progress(st.session_state['username'], selected_phrase)
 
@@ -167,7 +162,7 @@ def training():
 def asl_alphabet_training():
     st.subheader("Learn the ASL Alphabet")
     selected_letter = st.selectbox("Choose a letter to learn", list(ASL_ALPHABET.keys()))
-    
+
     if selected_letter:
         st.write(f"Letter: {selected_letter}")
         video_url = ASL_ALPHABET[selected_letter]
@@ -175,7 +170,7 @@ def asl_alphabet_training():
             st.video(video_url)
         except Exception as e:
             st.error(f"Error loading video: {str(e)}")
-        
+
         if st.button(f"Mark {selected_letter} as learned"):
             track_progress(st.session_state['username'], selected_letter)
 
@@ -192,235 +187,72 @@ def show_progress(username):
     st.subheader("Your Learning Progress")
     progress_data = load_progress_data()
     user_progress = progress_data[progress_data['username'] == username]
-    if user_progress.empty:
-        st.write("No progress yet.")
+
+    if not user_progress.empty:
+        st.write(f"Progress for {username}:")
+        st.write(user_progress)
     else:
-        st.table(user_progress)
+        st.write("No progress data available.")
 
-import streamlit as st
-import cv2
-import mediapipe as mp
-import numpy as np
-import tensorflow as tf
-import requests
-import os
-import json
+# Video capture using OpenCV (Only on request)
+def start_video_capture():
+    if 'video_started' not in st.session_state:
+        st.session_state.video_started = False
 
-# Define paths to GitHub files
-MODEL_URL = "https://github.com/aisyahsofia/SIGNXFYP/raw/main/AisyahSignX100.keras"
-LABELS_URL = "https://github.com/aisyahsofia/SIGNXFYP/raw/main/compile.json"
-TEMP_MODEL_PATH = "model.keras"
-TEMP_LABELS_PATH = "labels.json"
+    if st.checkbox("Start Video Capture"):
+        st.session_state.video_started = True
+        st.write("Starting video capture...")
+        run_video_capture()
+    elif st.session_state.video_started:
+        st.write("Video capture stopped.")
+        st.session_state.video_started = False
 
-# Function to download files
-def download_file(url, local_path):
-    try:
-        if not os.path.exists(local_path):
-            response = requests.get(url)
-            response.raise_for_status()
-            with open(local_path, "wb") as f:
-                f.write(response.content)
-    except requests.RequestException as e:
-        st.error(f"Error downloading file from {url}: {e}")
-        st.stop()
-
-# Download model and labels
-download_file(MODEL_URL, TEMP_MODEL_PATH)
-download_file(LABELS_URL, TEMP_LABELS_PATH)
-
-# Load the model and labels
-try:
-    model = tf.keras.models.load_model(TEMP_MODEL_PATH)
-except Exception as e:
-    st.error(f"Error loading model: {e}")
-    st.stop()
-
-try:
-    with open(TEMP_LABELS_PATH, "r") as f:
-        label_dict = json.load(f)
-except Exception as e:
-    st.error(f"Error loading labels: {e}")
-    st.stop()
-
-# Initialize MediaPipe Hands
-mp_hands = mp.solutions.hands
-mp_drawing = mp.solutions.drawing_utils
-mp_drawing_styles = mp.solutions.drawing_styles
-hands = mp_hands.Hands(
-    static_image_mode=False,
-    max_num_hands=1,
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5
-)
-
-# Function to process video frame
-def process_frame(frame):
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = hands.process(frame_rgb)
-
-    detected_character = None
-
-    if results.multi_hand_landmarks:
-        for hand_landmarks in results.multi_hand_landmarks:
-            # Draw landmarks
-            mp_drawing.draw_landmarks(
-                frame,
-                hand_landmarks,
-                mp_hands.HAND_CONNECTIONS,
-                mp_drawing_styles.get_default_hand_landmarks_style(),
-                mp_drawing_styles.get_default_hand_connections_style()
-            )
-
-            # Extract landmark data
-            data_aux = []
-            x_, y_ = [], []
-            for landmark in hand_landmarks.landmark:
-                x_.append(landmark.x)
-                y_.append(landmark.y)
-            min_x, min_y = min(x_), min(y_)
-            for landmark in hand_landmarks.landmark:
-                data_aux.append(landmark.x - min_x)
-                data_aux.append(landmark.y - min_y)
-
-            # Ensure data matches model input
-            if len(data_aux) == model.input_shape[1]:
-                data_aux = np.array(data_aux).reshape(1, -1)
-                prediction = model.predict(data_aux)
-                predicted_index = np.argmax(prediction)
-                confidence = prediction[0][predicted_index]
-
-                if confidence >= 0.3:
-                    detected_character = label_dict.get(str(predicted_index), "Unknown")
-                    cv2.putText(frame, f"{detected_character} ({confidence*100:.2f}%)",
-                                (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
-    return frame, detected_character
-
-# Video capture logic
-run = st.checkbox("Start Video Capture")
-
-if run:
-    stframe = st.empty()
+def run_video_capture():
     cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
-        st.error("Camera not accessible. Please check your device settings.")
-        st.stop()
-    else:
-        try:
-            while st.session_state.get("run", True):
-                ret, frame = cap.read()
-                if not ret:
-                    st.error("Error: Unable to capture video frame.")
-                    break
+        st.error("Error: Could not access the camera.")
+        return
 
-                # Process the frame
-                frame, detected_character = process_frame(frame)
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            st.error("Error: Could not read frame.")
+            break
 
-                # Display the video frame
-                stframe.image(frame, channels="BGR", use_column_width=True)
-        finally:
-            cap.release()
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        st.image(frame, channels="RGB", use_column_width=True)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
+    cap.release()
+    cv2.destroyAllWindows()
 
-# Quiz feature
-def quiz():
-    st.subheader("Sign Language Quiz")
+def main():
+    st.sidebar.title("SignX Menu")
+    selection = st.sidebar.radio("Choose an option", ["Login", "Sign Up", "Training", "ASL Alphabet", "Progress", "Video Capture"])
 
-    # Initialize quiz type and question if not set
-    if 'quiz_type' not in st.session_state:
-        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
-
-    if 'current_question' not in st.session_state:
-        if st.session_state['quiz_type'] == 'word':
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
-        else:
-            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
-            st.session_state['question_data'] = ASL_ALPHABET
-
-    # Display current question and video
-    question = st.session_state['current_question']
-    question_data = st.session_state['question_data']
-    st.write("What does this sign mean?")
-    st.video(question_data[question])
-
-    # Display answer input and Submit button
-    answer = st.text_input("Your answer")
-
-    if 'submitted' not in st.session_state:
-        st.session_state['submitted'] = False
-
-    # Show feedback after Submit
-    if st.button("Submit") and not st.session_state['submitted']:
-        if answer.strip().lower() == question.lower():
-            st.success("Correct!")
-            track_progress(st.session_state['username'], question)
-        else:
-            st.error(f"Incorrect! The correct answer was '{question}'.")
-
-        st.session_state['submitted'] = True  # Set submitted to True after submission
-
-    # Show Next button after feedback is given
-    if st.session_state['submitted'] and st.button("Next"):
-        # Reset submitted state
-        st.session_state['submitted'] = False
-
-        # Select a new question and type
-        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
-        if st.session_state['quiz_type'] == 'word':
-            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
-            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
-        else:
-            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
-            st.session_state['question_data'] = ASL_ALPHABET
-
-# Feedback system
-def feedback():
-    st.subheader("Feedback")
-    
-    # Slider for rating (1-5 scale)
-    rating = st.slider("Please rate your experience:", 1, 5, 3)  # Default to 3 (neutral)
-    
-    # Feedback text input
-    feedback_text = st.text_area("Please provide your feedback or suggestions:")
-    
-    if st.button("Submit Feedback"):
-        if feedback_text:
-            st.success(f"Thank you for your feedback! You rated us {rating} out of 5.")
-            # You can add logic here to save the feedback with the rating, e.g., saving to a CSV or a database.
-        else:
-            st.error("Please provide your feedback text.")
-    
-# Main app flow
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-
-if not st.session_state['logged_in']:
-    st.sidebar.title("SignX: Next-Gen Technology for Deaf Communications")
-    login_option = st.sidebar.selectbox("Login or Sign Up", ["Login", "Sign Up"])
-
-    if login_option == "Login":
+    if selection == "Login":
         login()
-    else:
+    elif selection == "Sign Up":
         sign_up()
-else:
-    st.sidebar.title(f"Welcome, {st.session_state['username']}")
-    action = st.sidebar.selectbox("Action", ["Training", "ASL Alphabet", "Your Progress", "Quiz", "Sign Detection", "Feedback", "Logout"])
+    elif selection == "Training":
+        if 'logged_in' in st.session_state and st.session_state.logged_in:
+            training()
+        else:
+            st.warning("Please log in first.")
+    elif selection == "ASL Alphabet":
+        if 'logged_in' in st.session_state and st.session_state.logged_in:
+            asl_alphabet_training()
+        else:
+            st.warning("Please log in first.")
+    elif selection == "Progress":
+        if 'logged_in' in st.session_state and st.session_state.logged_in:
+            show_progress(st.session_state['username'])
+        else:
+            st.warning("Please log in first.")
+    elif selection == "Video Capture":
+        start_video_capture()
 
-    if action == "Training":
-        training()
-    elif action == "ASL Alphabet":
-        asl_alphabet_training()
-    elif action == "Your Progress":
-        show_progress(st.session_state['username'])
-    elif action == "Quiz":
-        quiz()
-    elif action == "Sign Detection":
-        sign_detection()
-    elif action == "Feedback":
-        feedback()
-    elif action == "Logout":
-        st.session_state['logged_in'] = False
-        del st.session_state['username']
-        st.write("You have been logged out.")
+if __name__ == "__main__":
+    main()
