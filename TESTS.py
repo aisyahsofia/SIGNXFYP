@@ -1,21 +1,21 @@
 import streamlit as st
 import pandas as pd
 import hashlib
-import os
+import random
 import cv2
 import numpy as np
-import mediapipe as mp
-from tensorflow.keras.models import load_model
+import os
 
-# Print OpenCV version for debugging
+
 print(cv2.__version__)
 
-# File paths for storing user and progress data
+
+# File paths
 USERS_FILE = "users.csv"
 PROGRESS_FILE = "progress.csv"
 SIGN_DATA_FILE = "sign_language_data.csv"
 
-# Base URL for GitHub raw files for sign language data
+# Base URL for GitHub raw files
 BASE_URL = "https://raw.githubusercontent.com/aisyahsofia/SIGNXFYP/main/"
 
 # Sign language data for training
@@ -43,11 +43,38 @@ SIGN_LANGUAGE_DATA = {
 }
 
 # Basic ASL alphabet
-ASL_ALPHABET = {letter: f"{BASE_URL}{letter}%20ASL.mp4" for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'}
+ASL_ALPHABET = {
+    'A': f"{BASE_URL}A%20ASL.mp4",
+    'B': f"{BASE_URL}B%20ASL.mp4",
+    'C': f"{BASE_URL}C%20ASL.mp4",
+    'D': f"{BASE_URL}D%20ASL.mp4",
+    'E': f"{BASE_URL}E%20ASL.mp4",
+    'F': f"{BASE_URL}F%20ASL.mp4",
+    'G': f"{BASE_URL}G%20ASL.mp4",
+    'H': f"{BASE_URL}H%20ASL.mp4",
+    'I': f"{BASE_URL}I%20ASL.mp4",
+    'J': f"{BASE_URL}J%20ASL.mp4",
+    'K': f"{BASE_URL}K%20ASL.mp4",
+    'L': f"{BASE_URL}L%20ASL.mp4",
+    'M': f"{BASE_URL}M%20ASL.mp4",
+    'N': f"{BASE_URL}N%20ASL.mp4",
+    'O': f"{BASE_URL}O%20ASL.mp4",
+    'P': f"{BASE_URL}P%20ASL.mp4",
+    'Q': f"{BASE_URL}Q%20ASL.mp4",
+    'R': f"{BASE_URL}R%20ASL.mp4",
+    'S': f"{BASE_URL}S%20ASL.mp4",
+    'T': f"{BASE_URL}T%20ASL.mp4",
+    'U': f"{BASE_URL}U%20ASL.mp4",
+    'V': f"{BASE_URL}V%20ASL.mp4",
+    'W': f"{BASE_URL}W%20ASL.mp4",
+    'X': f"{BASE_URL}X%20ASL.mp4",
+    'Y': f"{BASE_URL}Y%20ASL.mp4",
+    'Z': f"{BASE_URL}Z%20ASL.mp4"
+}
 
 # Hashing function for passwords
 def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
+    return hashlib.sha256(str.encode(password)).hexdigest()
 
 # Save user data to a CSV
 def save_user_data(users_data):
@@ -74,10 +101,14 @@ def load_progress_data():
 # Login system
 def login():
     st.title("SignX: Next-Gen Technology for Deaf Communications")
+
+    
     users_data = load_user_data()
+    
     st.subheader("Login")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
+    
     hashed_password = hash_password(password)
 
     if st.button("Login"):
@@ -117,7 +148,7 @@ def sign_up():
 def training():
     st.subheader("Sign Language Training")
     selected_phrase = st.selectbox("Choose a phrase to learn", list(SIGN_LANGUAGE_DATA.keys()))
-
+    
     if selected_phrase:
         st.write(f"Phrase: {selected_phrase}")
         video_url = SIGN_LANGUAGE_DATA[selected_phrase]
@@ -125,7 +156,7 @@ def training():
             st.video(video_url)
         except Exception as e:
             st.error(f"Error loading video: {str(e)}")
-
+        
         if st.button(f"Mark {selected_phrase} as learned"):
             track_progress(st.session_state['username'], selected_phrase)
 
@@ -133,7 +164,7 @@ def training():
 def asl_alphabet_training():
     st.subheader("Learn the ASL Alphabet")
     selected_letter = st.selectbox("Choose a letter to learn", list(ASL_ALPHABET.keys()))
-
+    
     if selected_letter:
         st.write(f"Letter: {selected_letter}")
         video_url = ASL_ALPHABET[selected_letter]
@@ -141,7 +172,7 @@ def asl_alphabet_training():
             st.video(video_url)
         except Exception as e:
             st.error(f"Error loading video: {str(e)}")
-
+        
         if st.button(f"Mark {selected_letter} as learned"):
             track_progress(st.session_state['username'], selected_letter)
 
@@ -167,78 +198,129 @@ def show_progress(username):
 def sign_detection():
     st.subheader("Sign Detection Camera")
     st.write("Point your camera to detect ASL signs.")
+    
+    camera_input = st.camera_input("Capture Image of your Sign")
 
-    # Model download from Google Drive
-    gdown.download('https://drive.google.com/uc?id=1yRD3a942y5yID2atOF2o71lLwhOBoqJ-', 'AisyahSignX59.h5', quiet=False)
+    if camera_input is not None:
+        image = cv2.imdecode(np.frombuffer(camera_input.getvalue(), np.uint8), 1)
 
-    # Load the model
-    model = load_model('AisyahSignX59.h5')
+        # Placeholder for model predictions
+        # You can integrate a machine learning model here for sign recognition
+        # For this example, let's assume the model recognized "Hello"
+        detected_sign = "Hello"  # Placeholder for detected sign
 
-    # Setup MediaPipe hands
-    mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands()
-    mp_draw = mp.solutions.drawing_utils
+        st.image(image, caption="Captured Sign", use_column_width=True)
 
-    # Open camera feed
-    cap = cv2.VideoCapture(0)
+        # Simulate progress tracking for the recognized sign
+        if detected_sign:
+            st.write(f"Detected sign: {detected_sign}")
+            if st.button(f"Mark '{detected_sign}' as learned"):
+                track_progress(st.session_state['username'], detected_sign)
+                st.success(f"'{detected_sign}' marked as learned!")
 
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            continue
+    else:
+        st.error("No image captured yet.")
 
-        # Flip the frame horizontally
-        frame = cv2.flip(frame, 1)
+# Quiz feature
+def quiz():
+    st.subheader("Sign Language Quiz")
 
-        # Convert the frame to RGB
-        img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = hands.process(img_rgb)
+    # Initialize quiz type and question if not set
+    if 'quiz_type' not in st.session_state:
+        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
 
-        if results.multi_hand_landmarks:
-            for landmarks in results.multi_hand_landmarks:
-                mp_draw.draw_landmarks(frame, landmarks, mp_hands.HAND_CONNECTIONS)
+    if 'current_question' not in st.session_state:
+        if st.session_state['quiz_type'] == 'word':
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
+        else:
+            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
+            st.session_state['question_data'] = ASL_ALPHABET
 
-                # Get the landmarks and make predictions (model inference part is simplified)
-                data = np.array(landmarks.landmark).flatten().reshape(1, -1)
-                prediction = model.predict(data)
+    # Display current question and video
+    question = st.session_state['current_question']
+    question_data = st.session_state['question_data']
+    st.write("What does this sign mean?")
+    st.video(question_data[question])
 
-                st.write(f"Prediction: {prediction}")
+    # Display answer input and Submit button
+    answer = st.text_input("Your answer")
 
-        # Display the frame
-        st.image(frame, channels="BGR")
+    if 'submitted' not in st.session_state:
+        st.session_state['submitted'] = False
 
-    cap.release()
+    # Show feedback after Submit
+    if st.button("Submit") and not st.session_state['submitted']:
+        if answer.strip().lower() == question.lower():
+            st.success("Correct!")
+            track_progress(st.session_state['username'], question)
+        else:
+            st.error(f"Incorrect! The correct answer was '{question}'.")
 
-# Main function to handle the app flow
-def main():
-    st.sidebar.title("SignX Menu")
-    menu_options = ["Login", "Sign Up", "Training", "ASL Alphabet", "Progress", "Sign Detection"]
-    choice = st.sidebar.selectbox("Select an option", menu_options)
+        st.session_state['submitted'] = True  # Set submitted to True after submission
 
-    if choice == "Login":
+    # Show Next button after feedback is given
+    if st.session_state['submitted'] and st.button("Next"):
+        # Reset submitted state
+        st.session_state['submitted'] = False
+
+        # Select a new question and type
+        st.session_state['quiz_type'] = random.choice(['word', 'alphabet'])
+        if st.session_state['quiz_type'] == 'word':
+            st.session_state['current_question'] = random.choice(list(SIGN_LANGUAGE_DATA.keys()))
+            st.session_state['question_data'] = SIGN_LANGUAGE_DATA
+        else:
+            st.session_state['current_question'] = random.choice(list(ASL_ALPHABET.keys()))
+            st.session_state['question_data'] = ASL_ALPHABET
+
+
+# Feedback system
+def feedback():
+    st.subheader("Feedback")
+    
+    # Slider for rating (1-5 scale)
+    rating = st.slider("Please rate your experience:", 1, 5, 3)  # Default to 3 (neutral)
+    
+    # Feedback text input
+    feedback_text = st.text_area("Please provide your feedback or suggestions:")
+    
+    if st.button("Submit Feedback"):
+        if feedback_text:
+            st.success(f"Thank you for your feedback! You rated us {rating} out of 5.")
+            # You can add logic here to save the feedback with the rating, e.g., saving to a CSV or a database.
+        else:
+            st.error("Please provide your feedback text.")
+    
+
+# Main app flow
+if 'logged_in' not in st.session_state:
+    st.session_state['logged_in'] = False
+
+if not st.session_state['logged_in']:
+    st.sidebar.title("SignX: Next-Gen Technology for Deaf Communications")
+    login_option = st.sidebar.selectbox("Login or Sign Up", ["Login", "Sign Up"])
+
+    if login_option == "Login":
         login()
-    elif choice == "Sign Up":
+    else:
         sign_up()
-    elif choice == "Training":
-        if 'logged_in' in st.session_state and st.session_state['logged_in']:
-            training()
-        else:
-            st.warning("Please log in first.")
-    elif choice == "ASL Alphabet":
-        if 'logged_in' in st.session_state and st.session_state['logged_in']:
-            asl_alphabet_training()
-        else:
-            st.warning("Please log in first.")
-    elif choice == "Progress":
-        if 'logged_in' in st.session_state and st.session_state['logged_in']:
-            show_progress(st.session_state['username'])
-        else:
-            st.warning("Please log in first.")
-    elif choice == "Sign Detection":
-        if 'logged_in' in st.session_state and st.session_state['logged_in']:
-            sign_detection()
-        else:
-            st.warning("Please log in first.")
+else:
+    st.sidebar.title(f"Welcome, {st.session_state['username']}")
+    action = st.sidebar.selectbox("Action", ["Training", "ASL Alphabet", "Your Progress", "Quiz", "Sign Detection", "Feedback", "Logout"])
 
-if __name__ == "__main__":
-    main()
+    if action == "Training":
+        training()
+    elif action == "ASL Alphabet":
+        asl_alphabet_training()
+    elif action == "Your Progress":
+        show_progress(st.session_state['username'])
+    elif action == "Quiz":
+        quiz()
+    elif action == "Sign Detection":
+        sign_detection()
+    elif action == "Feedback":
+        feedback()
+    elif action == "Logout":
+        st.session_state['logged_in'] = False
+        del st.session_state['username']
+        st.write("You have been logged out.")
