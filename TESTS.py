@@ -257,29 +257,6 @@ def sign_detection():
         capture.release()
         cv2.destroyAllWindows()
 
-# Streamlit app setup
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-
-if not st.session_state['logged_in']:
-    st.sidebar.title("SignX: Next-Gen Technology for Deaf Communications")
-    login_option = st.sidebar.selectbox("Login or Sign Up", ["Login", "Sign Up"])
-
-    if login_option == "Login":
-        login()  # Add your login function here
-    else:
-        sign_up()  # Add your sign up function here
-else:
-    st.sidebar.title(f"Welcome, {st.session_state['username']}")
-    action = st.sidebar.selectbox("Action", ["Training", "ASL Alphabet", "Your Progress", "Quiz", "Sign Detection", "Feedback", "Logout"])
-
-    if action == "Sign Detection":
-        sign_detection()
-    elif action == "Logout":
-        st.session_state['logged_in'] = False
-        del st.session_state['username']
-        st.write("You have been logged out.")
-
 # Main app flow
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
